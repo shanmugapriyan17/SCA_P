@@ -54,6 +54,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Trust proxy (required for cookies behind Render/Heroku proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Session configuration
 app.use(session({
   store: new SQLiteStore({
@@ -63,11 +68,13 @@ app.use(session({
   secret: process.env.SECRET_KEY || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-    maxAge: 86400000 // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 86400000, // 24 hours
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined
   }
 }));
 
