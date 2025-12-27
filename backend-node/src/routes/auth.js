@@ -55,7 +55,14 @@ router.post('/register', authLimiter, async (req, res) => {
         req.session.username = username;
         req.session.email = email.toLowerCase();
 
-        res.json({ success: true, message: 'Account created' });
+        // Explicitly save session to ensure cookie is sent
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ error: 'Session error' });
+            }
+            res.json({ success: true, message: 'Account created' });
+        });
     } catch (error) {
         console.error('Registration error:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -63,7 +70,7 @@ router.post('/register', authLimiter, async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -93,7 +100,14 @@ router.post('/login', authLimiter, async (req, res) => {
         req.session.username = user.username;
         req.session.email = user.email;
 
-        res.json({ success: true, message: 'Login successful' });
+        // Explicitly save session to ensure cookie is sent
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).json({ error: 'Session error' });
+            }
+            res.json({ success: true, message: 'Login successful' });
+        });
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: 'Internal server error' });
