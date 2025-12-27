@@ -52,14 +52,24 @@ function Header() {
         }
     };
 
+    const handleResumeAnalyzerClick = (e) => {
+        e.preventDefault();
+        if (isAuthenticated) {
+            navigate('/resume-analyzer');
+        } else {
+            setPostLoginRedirect('/resume-analyzer');
+            setShowLoginModal(true);
+        }
+    };
+
     const handleLoginSuccess = () => {
         setShowLoginModal(false);
-        if (postLoginRedirect) {
-            setTimeout(() => {
-                navigate(postLoginRedirect);
-                setPostLoginRedirect(null);
-            }, 600);
-        }
+        // Always redirect after login - to postLoginRedirect or dashboard
+        const redirectTo = postLoginRedirect || '/dashboard';
+        setTimeout(() => {
+            navigate(redirectTo);
+            setPostLoginRedirect(null);
+        }, 600);
     };
 
     const handleSignupSuccess = () => {
@@ -102,7 +112,7 @@ function Header() {
                     <nav className="nav">
                         <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
                         <a href="#" onClick={handleDashboardClick} className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>Dashboard</a>
-                        <Link to="/resume-analyzer" className={`nav-link ${location.pathname === '/resume-analyzer' ? 'active' : ''}`}>Resume Analyzer</Link>
+                        <a href="#" onClick={handleResumeAnalyzerClick} className={`nav-link ${location.pathname === '/resume-analyzer' ? 'active' : ''}`}>Resume Analyzer</a>
                         <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>About Us</Link>
                     </nav>
 
