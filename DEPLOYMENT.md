@@ -102,7 +102,7 @@ Expected response:
    import axios from 'axios';
 
    const api = axios.create({
-       baseURL: import.meta.env.VITE_API_URL || 'https://your-render-url.onrender.com',
+       baseURL: import.meta.env.VITE_API_URL || 'https://smart-career-advisor-api.onrender.com',
        withCredentials: true,
        headers: {
            'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ Expected response:
 
 2. **Create `frontend-react/.env.production`:**
    ```env
-   VITE_API_URL=https://your-render-url.onrender.com
+   VITE_API_URL=https://smart-career-advisor-api.onrender.com
    ```
 
 3. **Create `frontend-react/vercel.json`:**
