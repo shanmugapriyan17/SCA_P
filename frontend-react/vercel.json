@@ -1,8 +1,25 @@
 {
     "rewrites": [
         {
-            "source": "/(.*)",
-            "destination": "/"
+            "source": "/api/:path*",
+            "destination": "https://smart-career-advisor-api.onrender.com/api/:path*"
+        },
+        {
+            "source": "/health",
+            "destination": "https://smart-career-advisor-api.onrender.com/health"
+        },
+        {
+            "source": "/uploads/:path*",
+            "destination": "https://smart-career-advisor-api.onrender.com/uploads/:path*"
+        }
+    ],
+    "routes": [
+        {
+            "handle": "filesystem"
+        },
+        {
+            "src": "/(.*)",
+            "dest": "/index.html"
         }
     ],
     "headers": [

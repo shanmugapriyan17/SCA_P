@@ -4176,3 +4176,110 @@ body.dark-mode .search-text-highlight {
     width: 20px;
     height: 20px;
 }
+
+/* ========================================
+   DARK MODE - About Page Styles
+   ======================================== */
+
+[data-theme="dark"] .about-page-wrapper,
+[data-theme="dark"] .about-main {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .about-sidebar {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .about-sidebar-nav .nav-btn {
+    color: #94a3b8;
+    background: transparent;
+}
+
+[data-theme="dark"] .about-sidebar-nav .nav-btn:hover {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .about-sidebar-nav .nav-btn.active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+}
+
+[data-theme="dark"] .about-content {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .tab-content h2,
+[data-theme="dark"] .tab-content h3,
+[data-theme="dark"] .tab-content h4 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .tab-content p,
+[data-theme="dark"] .tab-content li {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .about-me-card {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border-color: #475569;
+}
+
+[data-theme="dark"] .card-info h3 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .card-info .role {
+    color: #818cf8;
+}
+
+[data-theme="dark"] .card-info .college,
+[data-theme="dark"] .card-info .focus {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .about-content-text p,
+[data-theme="dark"] .about-content-text li {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .features-list li {
+    background: #334155;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .tech-grid .tech-card {
+    background: #334155;
+    border-color: #475569;
+}
+
+[data-theme="dark"] .tech-grid .tech-card h4 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .tech-grid .tech-card p {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .footer {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+[data-theme="dark"] .footer h4,
+[data-theme="dark"] .footer h5 {
+    color: #f1f5f9;
+}
+
+[data-theme="dark"] .footer p,
+[data-theme="dark"] .footer a {
+    color: #94a3b8;
+}
+
+[data-theme="dark"] .footer a:hover {
+    color: #818cf8;
+}
