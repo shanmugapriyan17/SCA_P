@@ -1,10 +1,18 @@
 import axios from 'axios';
 
-// With Vercel rewrites/proxy, all API calls go through same origin
-// No need for cross-domain - Vercel proxies /api/* to Render backend
+// In production, call Render backend directly (not through Vercel proxy)
+// This is necessary for session cookies to work properly
+const getBaseURL = () => {
+    if (import.meta.env.DEV) {
+        return '';  // Vite proxy handles this in development
+    }
+    // Production: call Render directly
+    return 'https://smart-career-advisor-api.onrender.com';
+};
+
 const api = axios.create({
-    baseURL: '',  // Empty = same origin (works with Vercel proxy)
-    withCredentials: true,
+    baseURL: getBaseURL(),
+    withCredentials: true,  // Required for cross-domain cookies
     headers: {
         'Content-Type': 'application/json',
     }
@@ -20,7 +28,7 @@ api.interceptors.response.use(
 
             switch (status) {
                 case 401:
-                    console.log('Unauthorized access');
+                    console.log('Unauthorized access - session may have expired');
                     break;
                 case 404:
                     console.log('Resource not found');

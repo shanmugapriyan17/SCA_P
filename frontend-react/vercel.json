@@ -2,16 +2,8 @@
     "framework": "vite",
     "rewrites": [
         {
-            "source": "/api/(.*)",
-            "destination": "https://smart-career-advisor-api.onrender.com/api/$1"
-        },
-        {
-            "source": "/health",
-            "destination": "https://smart-career-advisor-api.onrender.com/health"
-        },
-        {
-            "source": "/uploads/(.*)",
-            "destination": "https://smart-career-advisor-api.onrender.com/uploads/$1"
+            "source": "/(.*)",
+            "destination": "/"
         }
     ],
     "headers": [

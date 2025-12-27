@@ -1,21 +1,24 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const { dbAsync } = require('../services/database');
 
 const router = express.Router();
 
-// Rate limiting for auth endpoints: 5 requests per hour
-const authLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    message: { error: 'Too many requests' },
-    standardHeaders: true,
-    legacyHeaders: false
-});
+const JWT_SECRET = process.env.SECRET_KEY || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = '7d'; // Token valid for 7 days
+
+// Generate JWT token
+const generateToken = (userId, username, email) => {
+    return jwt.sign(
+        { userId, username, email },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRES_IN }
+    );
+};
 
 // POST /api/auth/register
-router.post('/register', authLimiter, async (req, res) => {
+router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
@@ -50,18 +53,23 @@ router.post('/register', authLimiter, async (req, res) => {
             [result.lastID]
         );
 
-        // Set session
+        // Generate JWT token
+        const token = generateToken(result.lastID, username, email.toLowerCase());
+
+        // Also set session for backwards compatibility
         req.session.userId = result.lastID;
         req.session.username = username;
         req.session.email = email.toLowerCase();
 
-        // Explicitly save session to ensure cookie is sent
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.status(500).json({ error: 'Session error' });
+        res.json({
+            success: true,
+            message: 'Account created',
+            token: token,
+            user: {
+                id: result.lastID,
+                username: username,
+                email: email.toLowerCase()
             }
-            res.json({ success: true, message: 'Account created' });
         });
     } catch (error) {
         console.error('Registration error:', error);
@@ -95,18 +103,23 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Set session
+        // Generate JWT token
+        const token = generateToken(user.id, user.username, user.email);
+
+        // Also set session for backwards compatibility
         req.session.userId = user.id;
         req.session.username = user.username;
         req.session.email = user.email;
 
-        // Explicitly save session to ensure cookie is sent
-        req.session.save((err) => {
-            if (err) {
-                console.error('Session save error:', err);
-                return res.status(500).json({ error: 'Session error' });
+        res.json({
+            success: true,
+            message: 'Login successful',
+            token: token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email
             }
-            res.json({ success: true, message: 'Login successful' });
         });
     } catch (error) {
         console.error('Login error:', error);

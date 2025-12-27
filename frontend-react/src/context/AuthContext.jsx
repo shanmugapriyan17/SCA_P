@@ -3,31 +3,40 @@ import api from '../api/client';
 
 const AuthContext = createContext(null);
 
+// Token storage helpers
+const getStoredToken = () => localStorage.getItem('authToken');
+const setStoredToken = (token) => localStorage.setItem('authToken', token);
+const removeStoredToken = () => localStorage.removeItem('authToken');
+
 export function AuthProvider({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Check session on mount
+    // Check session/token on mount
     const checkSession = useCallback(async () => {
+        const token = getStoredToken();
+
+        if (!token) {
+            setIsAuthenticated(false);
+            setUser(null);
+            setLoading(false);
+            return;
+        }
+
         try {
-            const response = await api.get('/api/session');
-            if (response.data.authenticated) {
-                setIsAuthenticated(true);
-                // Fetch user profile
-                try {
-                    const profileResponse = await api.get('/api/profile');
-                    // Extract user object from response
-                    setUser(profileResponse.data.user || profileResponse.data);
-                } catch (err) {
-                    console.error('Failed to fetch profile:', err);
-                }
-            } else {
-                setIsAuthenticated(false);
-                setUser(null);
-            }
+            // Set token in API headers
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+            // Try to get profile (this validates the token)
+            const profileResponse = await api.get('/api/profile');
+            setIsAuthenticated(true);
+            setUser(profileResponse.data.user || profileResponse.data);
         } catch (error) {
             console.error('Session check failed:', error);
+            // Token invalid or expired
+            removeStoredToken();
+            delete api.defaults.headers.common['Authorization'];
             setIsAuthenticated(false);
             setUser(null);
         } finally {
@@ -42,15 +51,20 @@ export function AuthProvider({ children }) {
     // Login function
     const login = async (email, password) => {
         const response = await api.post('/api/auth/login', { email, password });
-        if (response.data.success) {
+        if (response.data.success && response.data.token) {
+            // Store token
+            setStoredToken(response.data.token);
+            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
             setIsAuthenticated(true);
-            // Fetch profile after login
+
+            // Fetch profile
             try {
                 const profileResponse = await api.get('/api/profile');
-                // Extract user object from response
                 setUser(profileResponse.data.user || profileResponse.data);
             } catch (err) {
                 console.error('Failed to fetch profile after login:', err);
+                setUser(response.data.user);
             }
         }
         return response.data;
@@ -59,15 +73,20 @@ export function AuthProvider({ children }) {
     // Signup function
     const signup = async (username, email, password) => {
         const response = await api.post('/api/auth/register', { username, email, password });
-        if (response.data.success) {
+        if (response.data.success && response.data.token) {
+            // Store token
+            setStoredToken(response.data.token);
+            api.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
             setIsAuthenticated(true);
-            // Fetch profile after signup
+
+            // Fetch profile
             try {
                 const profileResponse = await api.get('/api/profile');
-                // Extract user object from response
                 setUser(profileResponse.data.user || profileResponse.data);
             } catch (err) {
                 console.error('Failed to fetch profile after signup:', err);
+                setUser(response.data.user);
             }
         }
         return response.data;
@@ -80,6 +99,8 @@ export function AuthProvider({ children }) {
         } catch (error) {
             console.error('Logout error:', error);
         } finally {
+            removeStoredToken();
+            delete api.defaults.headers.common['Authorization'];
             setIsAuthenticated(false);
             setUser(null);
         }
@@ -89,7 +110,6 @@ export function AuthProvider({ children }) {
     const refreshProfile = async () => {
         try {
             const response = await api.get('/api/profile');
-            // Extract user object from response
             const userData = response.data.user || response.data;
             setUser(userData);
             return userData;
