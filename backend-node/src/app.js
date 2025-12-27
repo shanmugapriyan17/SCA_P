@@ -26,6 +26,8 @@ const allowedOrigins = [
   'http://localhost:5175',
   'https://localhost:3000',
   'https://localhost:5000',
+  'https://smart-career-advisor-fawn.vercel.app',
+  'https://smart-career-advisor.vercel.app',
   'https://smart-career-advisor-seven.vercel.app',
   'https://smart-career-advisor-jhmp7j202-shanmugapriyan-ss-projects.vercel.app',
   'https://smart-career-advisor-exuf7rie5-shanmugapriyan-ss-projects.vercel.app',
@@ -84,6 +86,11 @@ app.use('/api/chatbot', chatbotRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Smart Career Advisor API is running', timestamp: new Date().toISOString() });
 });
 
 // 404 handler
