@@ -1,0 +1,186 @@
+# ===========================================
+# Smart Career Advisor - Git Ignore
+# ===========================================
+
+# ===========================================
+# Dependencies
+# ===========================================
+node_modules/
+.pnp/
+.pnp.js
+
+# ===========================================
+# Build outputs
+# ===========================================
+dist/
+build/
+.next/
+out/
+
+# ===========================================
+# Virtual Environment (Python)
+# ===========================================
+.venv/
+venv/
+env/
+ENV/
+
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ===========================================
+# IDE & Editors
+# ===========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+
+# ===========================================
+# AI Assistants & Coding Tools
+# ===========================================
+.claude/
+.cursor/
+.copilot/
+.github/copilot/
+.aider/
+.codeium/
+.tabnine/
+.continue/
+.sourcery/
+.kite/
+.agent/
+
+# ===========================================
+# OS Generated
+# ===========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===========================================
+# Environment Variables
+# ===========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# ===========================================
+# Database
+# ===========================================
+*.db
+*.sqlite
+*.sqlite3
+instance/
+backend-node/database/*.db
+
+# ===========================================
+# Session files
+# ===========================================
+sessions.db
+
+# ===========================================
+# Uploads (user generated content)
+# ===========================================
+static/uploads/
+static/uploads/avatars/
+static/uploads/resumes/
+backend-node/uploads/
+uploads/
+
+# ===========================================
+# ML Models (large binary files)
+# ===========================================
+# Uncomment if you don't want to track models:
+# backend-node/models/*.joblib
+# backend-node/models/*.pkl
+
+# ===========================================
+# Logs
+# ===========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===========================================
+# Testing
+# ===========================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ===========================================
+# Misc
+# ===========================================
+*.local
+*.cache
+.cache/
+.parcel-cache/
+.temp/
+.tmp/
+
+# ===========================================
+# TypeScript
+# ===========================================
+*.tsbuildinfo
+
+# ===========================================
+# Optional npm cache
+# ===========================================
+.npm/
+
+# ===========================================
+# Optional eslint cache
+# ===========================================
+.eslintcache
+
+# ===========================================
+# Vite
+# ===========================================
+*.local
+
+# ===========================================
+# Generated PDF reports (optional)
+# ===========================================
+# *.pdf
