@@ -4181,105 +4181,105 @@ body.dark-mode .search-text-highlight {
    DARK MODE - About Page Styles
    ======================================== */
 
-[data-theme="dark"] .about-page-wrapper,
-[data-theme="dark"] .about-main {
+body.dark-mode .about-page-wrapper,
+body.dark-mode .about-main {
     background: #0f172a;
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .about-sidebar {
+body.dark-mode .about-sidebar {
     background: #1e293b;
     border-color: #334155;
 }
 
-[data-theme="dark"] .about-sidebar-nav .nav-btn {
+body.dark-mode .about-sidebar-nav .nav-btn {
     color: #94a3b8;
     background: transparent;
 }
 
-[data-theme="dark"] .about-sidebar-nav .nav-btn:hover {
+body.dark-mode .about-sidebar-nav .nav-btn:hover {
     background: #334155;
     color: #f1f5f9;
 }
 
-[data-theme="dark"] .about-sidebar-nav .nav-btn.active {
+body.dark-mode .about-sidebar-nav .nav-btn.active {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
 }
 
-[data-theme="dark"] .about-content {
+body.dark-mode .about-content {
     background: #1e293b;
     border-color: #334155;
 }
 
-[data-theme="dark"] .tab-content h2,
-[data-theme="dark"] .tab-content h3,
-[data-theme="dark"] .tab-content h4 {
+body.dark-mode .tab-content h2,
+body.dark-mode .tab-content h3,
+body.dark-mode .tab-content h4 {
     color: #f1f5f9;
 }
 
-[data-theme="dark"] .tab-content p,
-[data-theme="dark"] .tab-content li {
+body.dark-mode .tab-content p,
+body.dark-mode .tab-content li {
     color: #94a3b8;
 }
 
-[data-theme="dark"] .about-me-card {
+body.dark-mode .about-me-card {
     background: linear-gradient(135deg, #1e293b, #334155);
     border-color: #475569;
 }
 
-[data-theme="dark"] .card-info h3 {
+body.dark-mode .card-info h3 {
     color: #f1f5f9;
 }
 
-[data-theme="dark"] .card-info .role {
+body.dark-mode .card-info .role {
     color: #818cf8;
 }
 
-[data-theme="dark"] .card-info .college,
-[data-theme="dark"] .card-info .focus {
+body.dark-mode .card-info .college,
+body.dark-mode .card-info .focus {
     color: #94a3b8;
 }
 
-[data-theme="dark"] .about-content-text p,
-[data-theme="dark"] .about-content-text li {
+body.dark-mode .about-content-text p,
+body.dark-mode .about-content-text li {
     color: #94a3b8;
 }
 
-[data-theme="dark"] .features-list li {
+body.dark-mode .features-list li {
     background: #334155;
     border-color: #475569;
     color: #e2e8f0;
 }
 
-[data-theme="dark"] .tech-grid .tech-card {
+body.dark-mode .tech-grid .tech-card {
     background: #334155;
     border-color: #475569;
 }
 
-[data-theme="dark"] .tech-grid .tech-card h4 {
+body.dark-mode .tech-grid .tech-card h4 {
     color: #f1f5f9;
 }
 
-[data-theme="dark"] .tech-grid .tech-card p {
+body.dark-mode .tech-grid .tech-card p {
     color: #94a3b8;
 }
 
-[data-theme="dark"] .footer {
+body.dark-mode .footer {
     background: #0f172a;
     border-color: #334155;
 }
 
-[data-theme="dark"] .footer h4,
-[data-theme="dark"] .footer h5 {
+body.dark-mode .footer h4,
+body.dark-mode .footer h5 {
     color: #f1f5f9;
 }
 
-[data-theme="dark"] .footer p,
-[data-theme="dark"] .footer a {
+body.dark-mode .footer p,
+body.dark-mode .footer a {
     color: #94a3b8;
 }
 
-[data-theme="dark"] .footer a:hover {
+body.dark-mode .footer a:hover {
     color: #818cf8;
 }
