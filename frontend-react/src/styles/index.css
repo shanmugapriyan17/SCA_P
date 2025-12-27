@@ -4178,15 +4178,17 @@ body.dark-mode .search-text-highlight {
 }
 
 /* ========================================
-   DARK MODE - About Page Styles
+   DARK MODE - About Page Styles (All Tabs)
    ======================================== */
 
+/* Base About Page */
 body.dark-mode .about-page-wrapper,
 body.dark-mode .about-main {
     background: #0f172a;
     color: #e2e8f0;
 }
 
+/* Sidebar */
 body.dark-mode .about-sidebar {
     background: #1e293b;
     border-color: #334155;
@@ -4207,22 +4209,32 @@ body.dark-mode .about-sidebar-nav .nav-btn.active {
     color: white;
 }
 
+/* Content Area */
 body.dark-mode .about-content {
     background: #1e293b;
     border-color: #334155;
 }
 
+/* Tab Content - Headings */
 body.dark-mode .tab-content h2,
 body.dark-mode .tab-content h3,
-body.dark-mode .tab-content h4 {
+body.dark-mode .tab-content h4,
+body.dark-mode .tab-content h5,
+body.dark-mode .tab-content h6 {
     color: #f1f5f9;
 }
 
+/* Tab Content - Text */
 body.dark-mode .tab-content p,
 body.dark-mode .tab-content li {
     color: #94a3b8;
 }
 
+body.dark-mode .tab-content strong {
+    color: #e2e8f0;
+}
+
+/* About Me Card */
 body.dark-mode .about-me-card {
     background: linear-gradient(135deg, #1e293b, #334155);
     border-color: #475569;
@@ -4246,12 +4258,115 @@ body.dark-mode .about-content-text li {
     color: #94a3b8;
 }
 
-body.dark-mode .features-list li {
+/* Features List (About Project Tab) */
+body.dark-mode .features-list {
+    background: transparent;
+}
+
+body.dark-mode .feature-item {
     background: #334155;
-    border-color: #475569;
+    border: 1px solid #475569;
     color: #e2e8f0;
 }
 
+body.dark-mode .feature-item h5 {
+    color: #818cf8;
+}
+
+body.dark-mode .feature-item p {
+    color: #94a3b8;
+}
+
+/* Tech Stack (About Project Tab) */
+body.dark-mode .tech-stack {
+    background: transparent;
+}
+
+body.dark-mode .tech-category {
+    background: #334155;
+    border: 1px solid #475569;
+}
+
+body.dark-mode .tech-category h5 {
+    color: #818cf8;
+    border-bottom-color: #475569;
+}
+
+body.dark-mode .tech-category ul li {
+    color: #94a3b8;
+}
+
+/* Metrics Section (About Project Tab) */
+body.dark-mode .metrics-comparison {
+    background: transparent;
+}
+
+body.dark-mode .model-metrics {
+    background: #334155;
+    border: 1px solid #475569;
+}
+
+body.dark-mode .model-metrics h5 {
+    color: #818cf8;
+}
+
+body.dark-mode .metric-box {
+    background: #1e293b;
+    border: 1px solid #475569;
+}
+
+body.dark-mode .metric-box h6 {
+    color: #94a3b8;
+}
+
+body.dark-mode .metric-value {
+    color: #f1f5f9;
+}
+
+body.dark-mode .metric-value.winner {
+    color: #4ade80;
+}
+
+body.dark-mode .metrics-note {
+    color: #94a3b8;
+    background: #334155;
+    border-color: #475569;
+}
+
+/* Learning Guide (Learning Platform Tab) */
+body.dark-mode .learning-guide {
+    background: transparent;
+}
+
+body.dark-mode .learning-step {
+    background: #334155;
+    border: 1px solid #475569;
+}
+
+body.dark-mode .learning-step h5 {
+    color: #818cf8;
+}
+
+body.dark-mode .learning-step p {
+    color: #94a3b8;
+}
+
+/* Terms & Conditions Tab */
+body.dark-mode .terms-section,
+body.dark-mode .terms-content {
+    background: transparent;
+}
+
+body.dark-mode .terms-section h4 {
+    color: #f1f5f9;
+}
+
+body.dark-mode .terms-section p,
+body.dark-mode .terms-section li {
+    color: #94a3b8;
+}
+
+/* Tech Grid (if used) */
 body.dark-mode .tech-grid .tech-card {
     background: #334155;
     border-color: #475569;
@@ -4265,6 +4380,7 @@ body.dark-mode .tech-grid .tech-card p {
     color: #94a3b8;
 }
 
+/* Footer */
 body.dark-mode .footer {
     background: #0f172a;
     border-color: #334155;
