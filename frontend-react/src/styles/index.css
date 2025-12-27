@@ -4188,25 +4188,33 @@ body.dark-mode .about-main {
     color: #e2e8f0;
 }
 
-/* Sidebar */
-body.dark-mode .about-sidebar {
+/* Sidebar / Tab Navigation */
+body.dark-mode .about-tabs-nav {
     background: #1e293b;
     border-color: #334155;
 }
 
-body.dark-mode .about-sidebar-nav .nav-btn {
+body.dark-mode .tabs-list {
+    background: #1e293b;
+}
+
+body.dark-mode .tab-link {
     color: #94a3b8;
     background: transparent;
 }
 
-body.dark-mode .about-sidebar-nav .nav-btn:hover {
+body.dark-mode .tab-link:hover {
     background: #334155;
     color: #f1f5f9;
 }
 
-body.dark-mode .about-sidebar-nav .nav-btn.active {
+body.dark-mode .tab-link.active {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
     color: white;
+}
+
+body.dark-mode .tab-link svg {
+    stroke: currentColor;
 }
 
 /* Content Area */
