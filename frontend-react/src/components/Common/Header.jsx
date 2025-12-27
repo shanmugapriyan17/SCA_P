@@ -112,7 +112,7 @@ function Header() {
                     <nav className="nav">
                         <Link to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
                         <a href="#" onClick={handleDashboardClick} className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>Dashboard</a>
-                        <a href="#" onClick={handleResumeAnalyzerClick} className={`nav-link ${location.pathname === '/resume-analyzer' ? 'active' : ''}`}>Resume Analyzer</a>
+                        <Link to="/resume-analyzer" className={`nav-link ${location.pathname === '/resume-analyzer' ? 'active' : ''}`}>Resume Analyzer</Link>
                         <Link to="/about" className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}>About Us</Link>
                     </nav>
 

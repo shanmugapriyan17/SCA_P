@@ -40,14 +40,7 @@ function App() {
                         </ProtectedRoute>
                     }
                 />
-                <Route
-                    path="/resume-analyzer"
-                    element={
-                        <ProtectedRoute>
-                            <ResumeAnalyzer />
-                        </ProtectedRoute>
-                    }
-                />
+                <Route path="/resume-analyzer" element={<ResumeAnalyzer />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/search" element={<SearchResults />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
