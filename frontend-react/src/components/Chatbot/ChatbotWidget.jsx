@@ -231,12 +231,14 @@ const ChatbotWidget = () => {
             doc.setTextColor(156, 163, 175);
             doc.text('Smart Career Advisor - AI-Powered Career Guidance Platform', pageWidth / 2, 290, { align: 'center' });
 
-            // Save PDF
-            doc.save('Smart_Career_Advisor_Metrics_Report.pdf');
+            // Open PDF in new tab (better for mobile)
+            const pdfBlob = doc.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            window.open(pdfUrl, '_blank');
 
             addBotMessage(
                 "✅ **PDF Report Generated!**\n\n" +
-                "📥 The file 'Smart_Career_Advisor_Metrics_Report.pdf' has been downloaded.\n\n" +
+                "📥 The report has been opened in a new tab.\n\n" +
                 "The report includes:\n" +
                 "• Dataset information\n" +
                 "• SVM model metrics\n" +
