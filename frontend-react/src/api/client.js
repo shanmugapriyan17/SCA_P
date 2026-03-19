@@ -6,8 +6,8 @@ const getBaseURL = () => {
     if (import.meta.env.DEV) {
         return '';  // Vite proxy handles this in development
     }
-    // Production: call Render directly
-    return 'https://smart-career-advisor-api.onrender.com';
+    // Production: use environment variable, fallback to correct render url
+    return import.meta.env.VITE_API_URL || 'https://sca-p.onrender.com';
 };
 
 const api = axios.create({
