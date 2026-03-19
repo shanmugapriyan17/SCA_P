@@ -1,0 +1,80 @@
+skill,course,platform,level,duration_hours,url
+Python,Python for Everybody,Coursera,Beginner,40,https://coursera.org/specializations/python
+Python,Complete Python Bootcamp,Udemy,Beginner,22,https://udemy.com/complete-python-bootcamp
+Python,Python Data Structures,Coursera,Intermediate,15,https://coursera.org/learn/python-data
+JavaScript,JavaScript: Understanding the Weird Parts,Udemy,Intermediate,12,https://udemy.com/understand-javascript
+JavaScript,The Complete JavaScript Course,Udemy,Beginner,69,https://udemy.com/the-complete-javascript-course
+JavaScript,JavaScript Algorithms and Data Structures,freeCodeCamp,Intermediate,300,https://freecodecamp.org/learn/javascript-algorithms-and-data-structures
+React,React - The Complete Guide,Udemy,Beginner,48,https://udemy.com/react-the-complete-guide
+React,Full-Stack Web Development with React,Coursera,Intermediate,30,https://coursera.org/specializations/full-stack-react
+Node.js,The Complete Node.js Developer Course,Udemy,Beginner,35,https://udemy.com/the-complete-nodejs-developer-course
+Node.js,Server-side Development with NodeJS,Coursera,Intermediate,20,https://coursera.org/learn/server-side-nodejs
+SQL,The Complete SQL Bootcamp,Udemy,Beginner,9,https://udemy.com/the-complete-sql-bootcamp
+SQL,SQL for Data Science,Coursera,Beginner,15,https://coursera.org/learn/sql-for-data-science
+Machine Learning,Machine Learning by Andrew Ng,Coursera,Intermediate,60,https://coursera.org/learn/machine-learning
+Machine Learning,Hands-On Machine Learning,O'Reilly,Advanced,40,https://oreilly.com/library/view/hands-on-machine-learning
+Machine Learning,Machine Learning A-Z,Udemy,Beginner,44,https://udemy.com/machinelearning
+Deep Learning,Deep Learning Specialization,Coursera,Intermediate,80,https://coursera.org/specializations/deep-learning
+Deep Learning,Practical Deep Learning for Coders,fast.ai,Intermediate,40,https://course.fast.ai
+TensorFlow,TensorFlow Developer Certificate,Coursera,Intermediate,50,https://coursera.org/professional-certificates/tensorflow-in-practice
+TensorFlow,Intro to TensorFlow for Deep Learning,Udacity,Intermediate,20,https://udacity.com/course/intro-to-tensorflow-for-deep-learning
+PyTorch,Deep Learning with PyTorch,Udacity,Intermediate,30,https://udacity.com/course/deep-learning-pytorch
+PyTorch,PyTorch for Deep Learning,freeCodeCamp,Beginner,25,https://youtube.com/watch?v=pytorch-course
+Docker,Docker Mastery,Udemy,Beginner,20,https://udemy.com/docker-mastery
+Docker,Docker for Beginners,KodeKloud,Beginner,8,https://kodekloud.com/courses/docker-for-the-absolute-beginner
+Kubernetes,Kubernetes for Beginners,KodeKloud,Beginner,12,https://kodekloud.com/courses/kubernetes-for-the-absolute-beginners
+Kubernetes,Certified Kubernetes Administrator,Udemy,Advanced,25,https://udemy.com/certified-kubernetes-administrator
+AWS,AWS Cloud Practitioner,AWS,Beginner,30,https://aws.amazon.com/training/learn-about/cloud-practitioner
+AWS,AWS Solutions Architect Associate,Udemy,Intermediate,27,https://udemy.com/aws-certified-solutions-architect-associate
+Azure,Azure Fundamentals AZ-900,Microsoft Learn,Beginner,20,https://learn.microsoft.com/en-us/training/paths/az-900-describe-cloud-concepts
+Git,Git Complete: The definitive guide,Udemy,Beginner,6,https://udemy.com/git-complete
+Git,Version Control with Git,Coursera,Beginner,10,https://coursera.org/learn/version-control-with-git
+Pandas,Data Analysis with Pandas and Python,Udemy,Beginner,20,https://udemy.com/data-analysis-with-pandas
+NumPy,NumPy for Data Science,Udemy,Beginner,5,https://udemy.com/numpy
+Statistics,Statistics with Python,Coursera,Intermediate,30,https://coursera.org/specializations/statistics-with-python
+NLP,NLP with Python,Coursera,Intermediate,25,https://coursera.org/specializations/natural-language-processing
+NLP,Hugging Face NLP Course,Hugging Face,Intermediate,15,https://huggingface.co/learn/nlp-course
+Scikit-learn,Scikit-learn Tutorial,DataCamp,Beginner,6,https://datacamp.com/courses/supervised-learning-with-scikit-learn
+CI/CD,CI/CD with Jenkins,Udemy,Intermediate,8,https://udemy.com/jenkins
+CI/CD,GitHub Actions - Complete Guide,Udemy,Beginner,12,https://udemy.com/github-actions
+Terraform,HashiCorp Certified Terraform Associate,Udemy,Intermediate,14,https://udemy.com/terraform-beginner-to-advanced
+Linux,Linux Mastery,Udemy,Beginner,12,https://udemy.com/linux-mastery
+HTML/CSS,Build Responsive Websites,Udemy,Beginner,38,https://udemy.com/design-and-develop-a-killer-website-with-html5-and-css3
+TypeScript,Understanding TypeScript,Udemy,Intermediate,15,https://udemy.com/understanding-typescript
+REST API,REST APIs with Flask and Python,Udemy,Intermediate,17,https://udemy.com/rest-api-flask-and-python
+Figma,Master Figma,Udemy,Beginner,10,https://udemy.com/figma-ux-ui-design-user-experience-tutorial-course
+Security,CompTIA Security+,Udemy,Intermediate,25,https://udemy.com/comptia-security-plus
+Penetration Testing,Ethical Hacking from Scratch,Udemy,Beginner,25,https://udemy.com/learn-ethical-hacking-from-scratch
+Agile,Agile with Atlassian Jira,Coursera,Beginner,10,https://coursera.org/learn/agile-atlassian-jira
+Scrum,Scrum Master Certification Prep,Udemy,Intermediate,8,https://udemy.com/scrum-master-certification
+Selenium,Selenium WebDriver with Java,Udemy,Intermediate,22,https://udemy.com/selenium-webdriver-java
+MongoDB,MongoDB - The Complete Developer's Guide,Udemy,Beginner,17,https://udemy.com/mongodb-the-complete-developers-guide
+Java,Java Programming Masterclass,Udemy,Beginner,80,https://udemy.com/java-the-complete-java-developer-course
+Swift,iOS & Swift - The Complete iOS App Development,Udemy,Beginner,55,https://udemy.com/ios-13-app-development-bootcamp
+Kotlin,Android Kotlin Developer,Udacity,Intermediate,40,https://udacity.com/course/developing-android-apps-with-kotlin
+Flutter,Flutter & Dart - The Complete Guide,Udemy,Beginner,42,https://udemy.com/learn-flutter-dart-to-build-ios-android-apps
+Solidity,Ethereum and Solidity: The Complete Guide,Udemy,Intermediate,24,https://udemy.com/ethereum-and-solidity-the-complete-developers-guide
+Blockchain,Blockchain Specialization,Coursera,Intermediate,40,https://coursera.org/specializations/blockchain
+LLM,LLM Course - Generative AI with LLMs,Coursera,Intermediate,20,https://coursera.org/learn/generative-ai-with-llms
+Langchain,LangChain for LLM Application Development,DeepLearning.AI,Intermediate,5,https://deeplearning.ai/short-courses/langchain-for-llm-application-development
+Prompt Engineering,ChatGPT Prompt Engineering for Developers,DeepLearning.AI,Beginner,3,https://deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers
+MLOps,Machine Learning Engineering for Production,Coursera,Advanced,40,https://coursera.org/specializations/machine-learning-engineering-for-production-mlops
+MLflow,MLflow in Action,DataCamp,Intermediate,4,https://datacamp.com/courses/mlflow
+Tableau,Tableau A-Z: Hands-On,Udemy,Beginner,9,https://udemy.com/tableau-for-beginners
+Power BI,Microsoft Power BI Desktop,Udemy,Beginner,12,https://udemy.com/microsoft-power-bi-up-running-with-power-bi-desktop
+Apache Spark,Apache Spark with Python - Big Data with PySpark,Udemy,Intermediate,12,https://udemy.com/spark-and-python-for-big-data-with-pyspark
+OpenCV,Computer Vision with OpenCV and Deep Learning,Udemy,Intermediate,14,https://udemy.com/python-for-computer-vision-with-opencv-and-deep-learning
+Transformers,NLP with Transformers,Hugging Face,Advanced,20,https://huggingface.co/learn/nlp-course
+BERT,BERT and Transformers,DeepLearning.AI,Advanced,8,https://deeplearning.ai/short-courses/
+Unity,Complete C# Unity Game Developer 3D,Udemy,Beginner,30,https://udemy.com/unitycourse2
+IoT,Internet of Things Specialization,Coursera,Intermediate,30,https://coursera.org/specializations/internet-of-things
+Arduino,Arduino Step by Step,Udemy,Beginner,20,https://udemy.com/arduino-sbs-17gs
+System Design,Grokking System Design,Educative,Advanced,25,https://educative.io/courses/grokking-the-system-design-interview
+Algorithms,Algorithms and Data Structures Masterclass,Udemy,Intermediate,22,https://udemy.com/js-algorithms-and-data-structures-masterclass
+Data Structures,Data Structures & Algorithms in Python,Udemy,Intermediate,16,https://udemy.com/data-structures-algorithms-python
+Microservices,Microservices with Node JS and React,Udemy,Intermediate,54,https://udemy.com/microservices-with-node-js-and-react
+GraphQL,The Modern GraphQL Bootcamp,Udemy,Intermediate,23,https://udemy.com/graphql-bootcamp
+Excel,Excel Skills for Business,Coursera,Beginner,20,https://coursera.org/specializations/excel
+R,R Programming,Coursera,Beginner,20,https://coursera.org/learn/r-programming
+OWASP,OWASP Top 10 Web Application Security,Udemy,Intermediate,5,https://udemy.com/owasp-top-10
+Compliance,GDPR Data Protection,Udemy,Beginner,3,https://udemy.com/gdpr

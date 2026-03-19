@@ -1,0 +1,45 @@
+{
+  "timestamp": "2026-02-16 20:40:16",
+  "methodology": "Skills-only features with cross-domain noise. 80/20 train/test split. No data leakage.",
+  "dataset": {
+    "file": "jobs_dataset_comprehensive.csv",
+    "total_samples": 9991,
+    "train_samples": 7992,
+    "test_samples": 1999,
+    "roles": 97,
+    "features": 1500
+  },
+  "svm_metrics": {
+    "accuracy": 99.15,
+    "precision_weighted": 99.18,
+    "recall_weighted": 99.15,
+    "f1_score_weighted": 99.15,
+    "cv_mean_accuracy": 99.21,
+    "cv_std": 0.2,
+    "cv_fold_scores": [
+      99.31,
+      98.81,
+      99.31,
+      99.25,
+      99.37
+    ],
+    "training_time_seconds": 0.75
+  },
+  "rf_metrics": {
+    "accuracy": 95.4,
+    "precision_weighted": 95.68,
+    "recall_weighted": 95.4,
+    "f1_score_weighted": 95.17,
+    "cv_mean_accuracy": 95.5,
+    "cv_std": 0.71,
+    "cv_fold_scores": [
+      95.75,
+      96.0,
+      94.18,
+      96.18,
+      95.37
+    ],
+    "training_time_seconds": 1.25
+  },
+  "best_model": "SVM"
+}

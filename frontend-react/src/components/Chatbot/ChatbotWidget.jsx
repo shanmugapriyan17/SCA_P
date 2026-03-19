@@ -1,470 +1,277 @@
-import { useState, useEffect, useRef } from 'react';
-import './ChatbotWidget.css';
-import jsPDF from 'jspdf';
+import { useState, useRef, useEffect } from 'react';
+import api from '../../api/client';
 
-const ChatbotWidget = () => {
+const FONT = "'Poppins', system-ui, sans-serif";
+
+/* Inject CSS once */
+const STYLES = `
+@keyframes cora-pop { 0%{transform:scale(0.8);opacity:0} 100%{transform:scale(1);opacity:1} }
+@keyframes cora-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,0.4)} 70%{box-shadow:0 0 0 10px rgba(99,102,241,0)} }
+@keyframes cora-bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+@keyframes cora-slide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cora-marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.cora-marquee-track { animation: cora-marquee 14s linear infinite; }
+.cora-marquee-track:hover { animation-play-state: paused; }
+`;
+
+/* Logo mark SVG */
+function LogoMark({ size = 20, color = '#fff' }) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="7" cy="18" rx="5" ry="13" fill={color} opacity="0.40" />
+            <ellipse cx="12" cy="18" rx="6.5" ry="16" fill={color} opacity="0.60" />
+            <ellipse cx="18" cy="18" rx="6.5" ry="18" fill={color} opacity="0.90" />
+            <ellipse cx="24" cy="18" rx="6.5" ry="16" fill={color} opacity="0.60" />
+            <ellipse cx="29" cy="18" rx="5" ry="13" fill={color} opacity="0.40" />
+        </svg>
+    );
+}
+
+function ChatbotWidget() {
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([]);
-    const [inputValue, setInputValue] = useState('');
-    const [isTyping, setIsTyping] = useState(false);
-    const [currentStep, setCurrentStep] = useState('initial');
-    const [userDetails, setUserDetails] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        preferredTime: ''
-    });
-    const [modelMetrics, setModelMetrics] = useState(null);
-    const [isTraining, setIsTraining] = useState(false);
-    const messagesEndRef = useRef(null);
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+    const [messages, setMessages] = useState([
+        { role: 'bot', text: "Hi! 👋 I'm **Cora**, your AI career companion.\nAsk me about career paths, skill gaps, or interview prep!" }
+    ]);
+    const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(false);
+    const chatRef = useRef(null);
 
     useEffect(() => {
-        scrollToBottom();
+        if (!document.getElementById('cora-style')) {
+            const s = document.createElement('style');
+            s.id = 'cora-style';
+            s.textContent = STYLES;
+            document.head.appendChild(s);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }, [messages]);
 
-    useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            setTimeout(() => {
-                addBotMessage(
-                    "👋 Hi! I'm your Smart Career Advisor assistant. I can help you:\n\n" +
-                    "1️⃣ Schedule a meeting with our career advisor\n" +
-                    "2️⃣ Learn about our project\n" +
-                    "3️⃣ Know about the creator\n" +
-                    "4️⃣ View Model Accuracy (ML Metrics)\n" +
-                    "5️⃣ Export Metrics Report (PDF)\n\n" +
-                    "What would you like to do?"
-                );
-            }, 500);
-        }
-    }, [isOpen]);
-
-    const addBotMessage = (text, delay = 1000) => {
-        setIsTyping(true);
-        setTimeout(() => {
-            setMessages(prev => [...prev, { text, sender: 'bot', timestamp: new Date() }]);
-            setIsTyping(false);
-        }, delay);
-    };
-
-    const addUserMessage = (text) => {
-        setMessages(prev => [...prev, { text, sender: 'user', timestamp: new Date() }]);
-    };
-
-    const handleSend = () => {
-        if (!inputValue.trim()) return;
-
-        const userInput = inputValue.trim();
-        addUserMessage(userInput);
-        setInputValue('');
-
-        processUserInput(userInput);
-    };
-
-    // Fetch model metrics from API
-    const fetchModelMetrics = async () => {
+    const send = async (msg) => {
+        const text = (msg || input).trim();
+        if (!text || loading) return;
+        setInput('');
+        setMessages(p => [...p, { role: 'user', text }]);
+        setLoading(true);
         try {
-            const response = await fetch('/api/chatbot/model-metrics');
-            const data = await response.json();
-            if (data.success && data.metrics) {
-                setModelMetrics(data.metrics);
-                return data.metrics;
-            }
-            return null;
-        } catch (error) {
-            console.error('Error fetching metrics:', error);
-            return null;
+            const res = await api.post('/api/chatbot/chat', { message: text });
+            const reply = res.data?.response || res.data?.message || "I'm here to help with your career!";
+            setMessages(p => [...p, { role: 'bot', text: reply }]);
+        } catch {
+            setMessages(p => [...p, { role: 'bot', text: "Sorry, I'm having trouble connecting. Please try again." }]);
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Display model metrics in chat
-    const showModelMetrics = async () => {
-        addBotMessage("📊 Fetching model metrics...", 500);
+    /* ────────── CLOSED STATE ────────── */
+    if (!isOpen) return (
+        <button
+            onClick={() => setIsOpen(true)}
+            title="Chat with Cora"
+            style={{
+                position: 'fixed', bottom: '28px', right: '28px', zIndex: 1000,
+                width: '56px', height: '56px', borderRadius: '16px',
+                background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 8px 24px rgba(79,70,229,0.5)',
+                animation: 'cora-pulse 2.5s infinite',
+                transition: 'transform 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+            <LogoMark size={26} color="#fff" />
+            <span style={{
+                position: 'absolute', top: '-5px', right: '-5px',
+                width: '18px', height: '18px', borderRadius: '50%',
+                background: '#22c55e', border: '2px solid #fff',
+                fontSize: '9px', fontWeight: 700, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: FONT,
+            }}>1</span>
+        </button>
+    );
 
-        const metrics = await fetchModelMetrics();
-
-        if (metrics) {
-            const svmAcc = (metrics.svm_metrics?.accuracy * 100).toFixed(2);
-            const rfAcc = (metrics.rf_metrics?.accuracy * 100).toFixed(2);
-            const svmPrec = (metrics.svm_metrics?.precision * 100).toFixed(2);
-            const rfPrec = (metrics.rf_metrics?.precision * 100).toFixed(2);
-            const svmRecall = (metrics.svm_metrics?.recall * 100).toFixed(2);
-            const rfRecall = (metrics.rf_metrics?.recall * 100).toFixed(2);
-            const svmF1 = (metrics.svm_metrics?.f1_score * 100).toFixed(2);
-            const rfF1 = (metrics.rf_metrics?.f1_score * 100).toFixed(2);
-            const numRoles = metrics.dataset?.num_roles || 0;
-            const totalSamples = metrics.dataset?.total_samples || 0;
-            const bestModel = metrics.best_model?.name || 'SVM';
-
-            addBotMessage(
-                `📈 **Model Performance Report**\n\n` +
-                `🗓️ Last Trained: ${metrics.timestamp}\n` +
-                `📊 Dataset: ${totalSamples} samples, ${numRoles} roles\n\n` +
-                `**SVM Model:**\n` +
-                `• Accuracy: ${svmAcc}%\n` +
-                `• Precision: ${svmPrec}%\n` +
-                `• Recall: ${svmRecall}%\n` +
-                `• F1-Score: ${svmF1}%\n\n` +
-                `**Random Forest Model:**\n` +
-                `• Accuracy: ${rfAcc}%\n` +
-                `• Precision: ${rfPrec}%\n` +
-                `• Recall: ${rfRecall}%\n` +
-                `• F1-Score: ${rfF1}%\n\n` +
-                `🏆 **Best Model: ${bestModel}**\n\n` +
-                `Would you like to export this as a PDF? Type "5" or "export pdf"`,
-                1500
-            );
-        } else {
-            addBotMessage(
-                "❌ No model metrics found. The model hasn't been trained yet.\n\n" +
-                "Please run the training script first:\n" +
-                "`python scripts/train_and_evaluate.py`",
-                1000
-            );
-        }
-    };
-
-    // Export metrics as PDF
-    const exportMetricsPDF = async () => {
-        addBotMessage("📄 Generating PDF report...", 500);
-
-        const metrics = modelMetrics || await fetchModelMetrics();
-
-        if (!metrics) {
-            addBotMessage("❌ No metrics available to export. Please view metrics first (option 4).", 1000);
-            return;
-        }
-
-        try {
-            const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.getWidth();
-
-            // Title
-            doc.setFontSize(24);
-            doc.setTextColor(79, 70, 229); // Indigo
-            doc.text('Smart Career Advisor', pageWidth / 2, 25, { align: 'center' });
-
-            doc.setFontSize(16);
-            doc.setTextColor(100, 116, 139);
-            doc.text('Model Performance Report', pageWidth / 2, 35, { align: 'center' });
-
-            // Timestamp
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, 45, { align: 'center' });
-            doc.text(`Last Trained: ${metrics.timestamp}`, pageWidth / 2, 52, { align: 'center' });
-
-            // Dataset Info
-            doc.setFontSize(14);
-            doc.setTextColor(30, 41, 59);
-            doc.text('Dataset Information', 20, 70);
-
-            doc.setFontSize(11);
-            doc.setTextColor(71, 85, 105);
-            doc.text(`• Total Samples: ${metrics.dataset?.total_samples || 'N/A'}`, 25, 80);
-            doc.text(`• Training Set: ${metrics.dataset?.train_samples || 'N/A'}`, 25, 87);
-            doc.text(`• Testing Set: ${metrics.dataset?.test_samples || 'N/A'}`, 25, 94);
-            doc.text(`• Number of Roles: ${metrics.dataset?.num_roles || 'N/A'}`, 25, 101);
-
-            // SVM Model
-            doc.setFontSize(14);
-            doc.setTextColor(30, 41, 59);
-            doc.text('SVM Model Performance', 20, 118);
-
-            doc.setFontSize(11);
-            doc.setTextColor(71, 85, 105);
-            const svmMetrics = metrics.svm_metrics || {};
-            doc.text(`• Accuracy: ${(svmMetrics.accuracy * 100).toFixed(2)}%`, 25, 128);
-            doc.text(`• Precision: ${(svmMetrics.precision * 100).toFixed(2)}%`, 25, 135);
-            doc.text(`• Recall: ${(svmMetrics.recall * 100).toFixed(2)}%`, 25, 142);
-            doc.text(`• F1-Score: ${(svmMetrics.f1_score * 100).toFixed(2)}%`, 25, 149);
-            doc.text(`• Training Time: ${svmMetrics.training_time_seconds?.toFixed(3)}s`, 25, 156);
-
-            // Random Forest Model
-            doc.setFontSize(14);
-            doc.setTextColor(30, 41, 59);
-            doc.text('Random Forest Model Performance', 20, 173);
-
-            doc.setFontSize(11);
-            doc.setTextColor(71, 85, 105);
-            const rfMetrics = metrics.rf_metrics || {};
-            doc.text(`• Accuracy: ${(rfMetrics.accuracy * 100).toFixed(2)}%`, 25, 183);
-            doc.text(`• Precision: ${(rfMetrics.precision * 100).toFixed(2)}%`, 25, 190);
-            doc.text(`• Recall: ${(rfMetrics.recall * 100).toFixed(2)}%`, 25, 197);
-            doc.text(`• F1-Score: ${(rfMetrics.f1_score * 100).toFixed(2)}%`, 25, 204);
-            doc.text(`• Training Time: ${rfMetrics.training_time_seconds?.toFixed(3)}s`, 25, 211);
-
-            // Best Model
-            doc.setFontSize(14);
-            doc.setTextColor(79, 70, 229);
-            doc.text(`Best Model: ${metrics.best_model?.name || 'SVM'} (${(metrics.best_model?.accuracy * 100).toFixed(2)}% accuracy)`, 20, 230);
-
-            // Supported Roles (Page 2)
-            doc.addPage();
-            doc.setFontSize(16);
-            doc.setTextColor(30, 41, 59);
-            doc.text('Supported Job Roles', pageWidth / 2, 20, { align: 'center' });
-
-            doc.setFontSize(10);
-            doc.setTextColor(71, 85, 105);
-
-            const roles = metrics.dataset?.roles || [];
-            const columns = 2;
-            const rolesPerColumn = Math.ceil(roles.length / columns);
-
-            roles.forEach((role, index) => {
-                const column = Math.floor(index / rolesPerColumn);
-                const row = index % rolesPerColumn;
-                const x = 20 + (column * 95);
-                const y = 35 + (row * 6);
-
-                if (y < 280) {
-                    doc.text(`${index + 1}. ${role}`, x, y);
-                }
-            });
-
-            // Footer
-            doc.setFontSize(9);
-            doc.setTextColor(156, 163, 175);
-            doc.text('Smart Career Advisor - AI-Powered Career Guidance Platform', pageWidth / 2, 290, { align: 'center' });
-
-            // Open PDF in new tab (better for mobile)
-            const pdfBlob = doc.output('blob');
-            const pdfUrl = URL.createObjectURL(pdfBlob);
-            window.open(pdfUrl, '_blank');
-
-            addBotMessage(
-                "✅ **PDF Report Generated!**\n\n" +
-                "📥 The report has been opened in a new tab.\n\n" +
-                "The report includes:\n" +
-                "• Dataset information\n" +
-                "• SVM model metrics\n" +
-                "• Random Forest model metrics\n" +
-                "• All 97 supported job roles\n\n" +
-                "Is there anything else I can help you with?",
-                1500
-            );
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            addBotMessage("❌ Error generating PDF. Please try again.", 1000);
-        }
-    };
-
-    const processUserInput = (input) => {
-        const lowerInput = input.toLowerCase();
-
-        // Check for model metrics request
-        if (lowerInput === '4' || lowerInput.includes('accuracy') || lowerInput.includes('metrics') || lowerInput.includes('model')) {
-            showModelMetrics();
-            setCurrentStep('initial');
-            return;
-        }
-
-        // Check for PDF export request
-        if (lowerInput === '5' || lowerInput.includes('export') || lowerInput.includes('pdf') || lowerInput.includes('download')) {
-            exportMetricsPDF();
-            setCurrentStep('initial');
-            return;
-        }
-
-        // Check for project info request
-        if (lowerInput.includes('project') || lowerInput.includes('about') && lowerInput.includes('this')) {
-            addBotMessage(
-                "📊 **Smart Career Advisor** is an AI-powered career guidance platform that:\n\n" +
-                "✅ Analyzes your resume using Machine Learning\n" +
-                "✅ Predicts best-fit career paths\n" +
-                "✅ Uses dual ML models (SVM & Random Forest)\n" +
-                "✅ Supports 97 different job roles\n" +
-                "✅ Provides job fit analysis and recommendations\n\n" +
-                "Is there anything else I can help you with?"
-            );
-            setCurrentStep('initial');
-            return;
-        }
-
-        // Check for creator info request
-        if (lowerInput.includes('creator') || lowerInput.includes('who created') || lowerInput.includes('developer')) {
-            addBotMessage(
-                "👩‍💻 **About the Creator**\n\n" +
-                "This project was created by **Rathidevi S**, an AI/ML Engineer from Christian College of Engineering and Technology, Oddanchatram.\n\n" +
-                "**Expertise:**\n" +
-                "• Machine Learning & Deep Learning\n" +
-                "• Natural Language Processing\n" +
-                "• Resume Analysis Systems\n" +
-                "• Web Application Development\n\n" +
-                "Anything else you'd like to know?"
-            );
-            setCurrentStep('initial');
-            return;
-        }
-
-        // Meeting scheduling flow
-        if (currentStep === 'initial') {
-            if (lowerInput.includes('schedule') || lowerInput.includes('meeting') || lowerInput.includes('meet') || lowerInput === '1') {
-                setCurrentStep('askName');
-                addBotMessage("Great! I'll help you schedule a meeting. What's your name?");
-            } else if (lowerInput === '2') {
-                processUserInput('project');
-            } else if (lowerInput === '3') {
-                processUserInput('creator');
-            } else {
-                addBotMessage(
-                    "I didn't quite understand that. Could you please choose:\n\n" +
-                    "1️⃣ Schedule a meeting\n" +
-                    "2️⃣ Learn about project\n" +
-                    "3️⃣ Know about creator\n" +
-                    "4️⃣ View Model Accuracy\n" +
-                    "5️⃣ Export Metrics PDF"
-                );
-            }
-        } else if (currentStep === 'askName') {
-            setUserDetails(prev => ({ ...prev, name: input }));
-            setCurrentStep('askEmail');
-            addBotMessage(`Nice to meet you, ${input}! What's your email address?`);
-        } else if (currentStep === 'askEmail') {
-            if (validateEmail(input)) {
-                setUserDetails(prev => ({ ...prev, email: input }));
-                setCurrentStep('askPhone');
-                addBotMessage("Got it! And your phone number?");
-            } else {
-                addBotMessage("That doesn't look like a valid email. Please enter a valid email address.");
-            }
-        } else if (currentStep === 'askPhone') {
-            if (validatePhone(input)) {
-                setUserDetails(prev => ({ ...prev, phone: input }));
-                setCurrentStep('askTime');
-                addBotMessage("Perfect! When would you prefer to meet? (e.g., 'Tomorrow 3 PM' or 'This Friday')");
-            } else {
-                addBotMessage("Please enter a valid phone number (10 digits).");
-            }
-        } else if (currentStep === 'askTime') {
-            setUserDetails(prev => ({ ...prev, preferredTime: input }));
-            setCurrentStep('confirm');
-            scheduleMeeting({ ...userDetails, preferredTime: input });
-        }
-    };
-
-    const validateEmail = (email) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    };
-
-    const validatePhone = (phone) => {
-        return /^\d{10}$/.test(phone.replace(/\D/g, ''));
-    };
-
-    const scheduleMeeting = async (details) => {
-        try {
-            const response = await fetch('/api/chatbot/schedule-meeting', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(details)
-            });
-
-            if (response.ok) {
-                addBotMessage(
-                    `✅ **Meeting Scheduled!**\n\n` +
-                    `We will reach you at **${details.email}** and **${details.phone}** to confirm.\n\n` +
-                    `Our career advisor will contact you soon.\n\n` +
-                    `Is there anything else I can help you with?`,
-                    1500
-                );
-            } else {
-                addBotMessage("Sorry, there was an error scheduling your meeting. Please try again or contact us directly.");
-            }
-        } catch (error) {
-            addBotMessage("Sorry, there was an error scheduling your meeting. Please try again or contact us directly.");
-        }
-        setCurrentStep('initial');
-        setUserDetails({ name: '', email: '', phone: '', preferredTime: '' });
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
+    /* ────────── OPEN STATE ────────── */
     return (
-        <div className="chatbot-container">
-            {/* Floating Button */}
-            {!isOpen && (
-                <button className="chatbot-floating-btn" onClick={() => setIsOpen(true)} aria-label="Open chat">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                </button>
-            )}
-
-            {/* Chat Window */}
-            {isOpen && (
-                <div className="chatbot-window">
-                    {/* Header */}
-                    <div className="chatbot-header">
-                        <div className="chatbot-header-info">
-                            <div className="chatbot-avatar">🤖</div>
-                            <div>
-                                <h4>Career Assistant</h4>
-                                <span className="chatbot-status">Online</span>
-                            </div>
+        <div style={{
+            position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000,
+            width: 'calc(100% - 48px)', maxWidth: '390px',
+            borderRadius: '24px',
+            overflow: 'hidden',
+            boxShadow: '0 20px 60px rgba(79,70,229,0.2), 0 4px 16px rgba(0,0,0,0.08)',
+            fontFamily: FONT,
+            animation: 'cora-pop 0.25s ease',
+            display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto auto',
+            maxHeight: 'calc(100vh - 120px)',
+            transformOrigin: 'bottom right',
+        }}>
+            {/* ── HEADER ── */}
+            <div style={{
+                padding: '18px 22px',
+                background: 'linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {/* Avatar */}
+                    <div style={{
+                        width: '38px', height: '38px', borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.18)',
+                        border: '1.5px solid rgba(255,255,255,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                    }}>
+                        <LogoMark size={22} color="#fff" />
+                    </div>
+                    <div>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#fff', lineHeight: 1 }}>Cora</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#4ade80', flexShrink: 0, display: 'inline-block' }} />
+                            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)' }}>Online • AI Career Advisor</span>
                         </div>
-                        <button className="chatbot-close-btn" onClick={() => setIsOpen(false)} aria-label="Close chat">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-
-                    {/* Messages */}
-                    <div className="chatbot-messages">
-                        {messages.map((msg, index) => (
-                            <div key={index} className={`chatbot-message ${msg.sender}`}>
-                                {msg.sender === 'bot' && <div className="message-avatar">🤖</div>}
-                                <div className="message-bubble">
-                                    {msg.text.split('\n').map((line, i) => (
-                                        <p key={i}>{line}</p>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                        {isTyping && (
-                            <div className="chatbot-message bot">
-                                <div className="message-avatar">🤖</div>
-                                <div className="message-bubble typing">
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input */}
-                    <div className="chatbot-input-container">
-                        <input
-                            type="text"
-                            className="chatbot-input"
-                            placeholder="Type your message..."
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                        />
-                        <button className="chatbot-send-btn" onClick={handleSend} aria-label="Send message">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <line x1="22" y1="2" x2="11" y2="13"></line>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                            </svg>
-                        </button>
                     </div>
                 </div>
-            )}
+                <button onClick={() => setIsOpen(false)} style={{
+                    width: '28px', height: '28px', borderRadius: '8px', border: 'none',
+                    background: 'rgba(255,255,255,0.15)', color: '#fff',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'background 0.15s',
+                }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                >
+                    <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>close</span>
+                </button>
+            </div>
+
+            {/* ── MESSAGES ── */}
+            <div ref={chatRef} style={{
+                overflowY: 'auto', padding: '20px 18px',
+                background: '#f5f6fb',
+                display: 'flex', flexDirection: 'column', gap: '16px',
+            }}>
+                {messages.map((msg, i) => (
+                    <div key={i} style={{
+                        display: 'flex',
+                        flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                        alignItems: 'flex-end', gap: '8px',
+                        animation: 'cora-slide 0.2s ease',
+                    }}>
+                        {/* Avatar bubble */}
+                        {msg.role === 'bot' && (
+                            <div style={{
+                                width: '28px', height: '28px', borderRadius: '8px',
+                                background: 'linear-gradient(135deg,#4f46e5,#7c3aed)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0,
+                            }}>
+                                <LogoMark size={16} color="#fff" />
+                            </div>
+                        )}
+                        {/* Message */}
+                        <div style={{
+                            maxWidth: '74%',
+                            padding: '11px 15px',
+                            borderRadius: msg.role === 'user' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                            background: msg.role === 'user'
+                                ? 'linear-gradient(135deg,#4f46e5,#7c3aed)'
+                                : '#fff',
+                            color: msg.role === 'user' ? '#fff' : '#111827',
+                            fontSize: '13px', lineHeight: 1.6,
+                            boxShadow: msg.role === 'user'
+                                ? '0 3px 12px rgba(79,70,229,0.28)'
+                                : '0 1px 4px rgba(0,0,0,0.07)',
+                            border: msg.role === 'bot' ? '1px solid rgba(99,102,241,0.1)' : 'none',
+                        }}>
+                            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{msg.text.replace(/\*\*(.*?)\*\*/g, '$1')}</p>
+                        </div>
+                    </div>
+                ))}
+
+                {/* Typing indicator */}
+                {loading && (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', animation: 'cora-slide 0.2s ease' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <LogoMark size={16} color="#fff" />
+                        </div>
+                        <div style={{ background: '#fff', borderRadius: '14px 14px 14px 4px', padding: '12px 14px', border: '1px solid rgba(99,102,241,0.1)', boxShadow: '0 1px 4px rgba(0,0,0,0.07)', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            {[0, 160, 320].map(d => (
+                                <span key={d} style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#6366f1', display: 'inline-block', animation: `cora-bounce 1.4s ease-in-out ${d}ms infinite` }} />
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ── AUTO-SCROLL MARQUEE CHIPS ── */}
+            <div style={{
+                padding: '8px 0',
+                background: '#f5f6fb',
+                borderTop: '1px solid rgba(99,102,241,0.08)',
+                overflow: 'hidden',
+            }}>
+                {/* Track: doubled chips for seamless loop, pauses on hover */}
+                <div className="cora-marquee-track" style={{ display: 'flex', gap: '8px', width: 'max-content', padding: '0 8px' }}>
+                    {[...['Skill Gap', 'Career Paths', 'Interview Tips', 'Resume Help', 'Salary Data', 'Job Search'], ...['Skill Gap', 'Career Paths', 'Interview Tips', 'Resume Help', 'Salary Data', 'Job Search']].map((chip, i) => (
+                        <button key={i}
+                            onClick={() => send(`Tell me about ${chip.toLowerCase()}`)}
+                            style={{
+                                padding: '5px 13px', borderRadius: '20px', whiteSpace: 'nowrap',
+                                background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.18)',
+                                color: '#4f46e5', fontSize: '11px', fontWeight: 600,
+                                cursor: 'pointer', transition: 'all 0.15s', fontFamily: FONT,
+                                flexShrink: 0,
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#4f46e5'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = '#4f46e5'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.color = '#4f46e5'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.18)'; }}
+                        >{chip}</button>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── INPUT ── */}
+            <div style={{ background: '#fff', padding: '14px 18px 18px', borderTop: '1px solid #f0f0f8' }}>
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    background: '#f5f6fb', borderRadius: '12px',
+                    border: '1.5px solid rgba(99,102,241,0.2)',
+                    padding: '0 8px 0 14px',
+                    transition: 'border-color 0.2s',
+                }}
+                    onFocus={() => { }}
+                >
+                    <input
+                        value={input}
+                        onChange={e => setInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                        placeholder="Ask Cora anything..."
+                        style={{
+                            flex: 1, border: 'none', background: 'transparent', outline: 'none',
+                            fontSize: '13px', color: '#111827', padding: '11px 0', fontFamily: FONT,
+                        }}
+                    />
+                    <button onClick={() => send()} disabled={!input.trim() || loading}
+                        style={{
+                            width: '32px', height: '32px', borderRadius: '8px', border: 'none',
+                            flexShrink: 0, cursor: input.trim() ? 'pointer' : 'default',
+                            background: input.trim() ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : '#e5e7eb',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s',
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#fff' }}>arrow_upward</span>
+                    </button>
+                </div>
+                <p style={{ margin: '6px 0 0', fontSize: '10px', color: '#9ca3af', textAlign: 'center', fontFamily: FONT }}>
+                    Powered by Smart Career Advisor AI
+                </p>
+            </div>
         </div>
     );
-};
+}
 
 export default ChatbotWidget;

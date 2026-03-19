@@ -1,10 +1,9 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
-const path = require('path');
-
 // Import routes
 const authRoutes = require('./routes/auth');
 const sessionRoutes = require('./routes/session');
@@ -13,6 +12,8 @@ const avatarRoutes = require('./routes/avatar');
 const resumeRoutes = require('./routes/resume');
 const predictRoutes = require('./routes/predict');
 const chatbotRoutes = require('./routes/chatbot.routes.js');
+const analysisRoutes = require('./routes/analysis');
+const assessmentRoutes = require('./routes/assessment');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -24,6 +25,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
+  'http://localhost:5176',
   'https://localhost:3000',
   'https://localhost:5000',
   'https://smart-career-advisor-fawn.vercel.app',
@@ -89,6 +91,8 @@ app.use('/api', avatarRoutes);
 app.use('/api', resumeRoutes);
 app.use('/api', predictRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/analysis', analysisRoutes);
+app.use('/api/assessment', assessmentRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -98,6 +102,17 @@ app.get('/health', (req, res) => {
 // API health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Smart Career Advisor API is running', timestamp: new Date().toISOString() });
+});
+
+// Database health check (Module 11)
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const { healthCheck } = require('./services/database');
+    const result = await healthCheck();
+    res.json({ success: true, ...result, timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(500).json({ success: false, status: 'error', error: error.message });
+  }
 });
 
 // 404 handler

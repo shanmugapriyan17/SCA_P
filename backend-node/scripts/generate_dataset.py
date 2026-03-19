@@ -447,27 +447,69 @@ LOCATIONS = ["San Francisco", "New York", "Austin", "Seattle", "Remote",
 LEVELS = ["Junior", "Mid-level", "Senior", "Lead", "Principal"]
 
 def generate_skills(role_data, add_noise=True):
-    """Generate skill set with some randomness"""
+    """Generate skill set with rich randomness for diverse training data"""
     skills = []
-    core_count = min(random.randint(3, 5), len(role_data["core"]))
-    skills.extend(random.sample(role_data["core"], core_count))
-    common_count = min(random.randint(3, 6), len(role_data["common"]))
-    skills.extend(random.sample(role_data["common"], common_count))
-    if add_noise and random.random() > 0.6:
-        noise_skills = ["Communication", "Problem Solving", "Team Work", "Agile", "Leadership"]
-        skills.extend(random.sample(noise_skills, random.randint(1, 2)))
+    
+    # Take a random subset of core skills (don't always include all of them)
+    # E.g., if there are 5 core skills, take anywhere from 1 to 4 of them
+    if len(role_data["core"]) > 1:
+        core_count = random.randint(1, len(role_data["core"]) - 1)
+    else:
+        core_count = 1
+    skills.extend(random.sample(role_data["core"], min(core_count, len(role_data["core"]))))
+    
+    # Take a random, smaller subset of common skills
+    if len(role_data["common"]) > 0:
+        common_count = random.randint(0, min(3, len(role_data["common"])))
+        skills.extend(random.sample(role_data["common"], common_count))
+    
+    # Aggressive noise injection for realism (users put random stuff on resumes)
+    if add_noise:
+        noise_skills = [
+            "Communication", "Problem Solving", "Team Work", "Agile", "Leadership",
+            "Time Management", "Critical Thinking", "Adaptability", "Creativity",
+            "Attention to Detail", "Collaboration", "Self-Motivated", "Organization",
+            "Interpersonal Skills", "Multitasking", "Decision Making", "Analytical Skills",
+            "Work Ethic", "Conflict Resolution", "Negotiation", "Presentation Skills",
+            "Strategic Planning", "Emotional Intelligence", "Remote Work", "Cross-functional",
+            "Mentoring", "Project Coordination", "Documentation", "Research",
+            "Continuous Learning", "Innovation", "Customer Focus",
+            
+            # Cross-domain technical noise (simulates transitioners or generalists)
+            "Microsoft Office", "Excel", "Data Entry", "Social Media", "Customer Service",
+            "Trello", "Asana", "Slack", "Zoom", "Google Workspace", "Public Speaking",
+            "Writing", "Editing", "Data Analysis", "Basic HTML", "WordPress"
+        ]
+        
+        # Add 3 to 8 random noise skills
+        num_noise = random.randint(3, 8)
+        skills.extend(random.sample(noise_skills, num_noise))
+    
     return list(set(skills))
 
 def generate_description(role):
+    # Introduce completely generic descriptions that give NO hint about the role
+    # This forces the model to rely solely on the noisy skills list
     templates = [
         f"Looking for a skilled {role} to join our team.",
         f"We need an experienced {role} for exciting projects.",
         f"{role} position with growth opportunities.",
         f"Join us as a {role} and work on cutting-edge technology.",
+        f"Exciting opportunity for a {role} to make an impact.",
+        f"We are hiring a talented {role} for our growing team.",
+        f"Seeking a passionate {role} to drive innovation.",
+        f"Open position: {role} with competitive compensation.",
+        "Looking for a motivated professional to join our fast-paced environment.",
+        "Experienced individual needed to help scale our operations globally.",
+        "Join our team to work on cross-functional, high-impact deliverables.",
+        "Seeking a detail-oriented expert with a proven track record of success.",
+        "We are hiring! Come build the future with our industry leading team.",
+        "Strategic thinker required for this dynamic, challenging position."
     ]
     return random.choice(templates)
 
-def generate_dataset(samples_per_role=10):
+def generate_dataset(samples_per_role=103):
+    """Generate ~10,000 samples (97 roles × 103 samples each)"""
     data = []
     id_counter = 1
     for role, role_data in ROLES.items():
@@ -476,7 +518,7 @@ def generate_dataset(samples_per_role=10):
             company = random.choice(COMPANIES)
             location = random.choice(LOCATIONS)
             description = generate_description(role)
-            skills = generate_skills(role_data, add_noise=random.random() > 0.3)
+            skills = generate_skills(role_data, add_noise=random.random() > 0.2)
             data.append({
                 "id": id_counter,
                 "title": f"{role} ({level})",
@@ -490,9 +532,9 @@ def generate_dataset(samples_per_role=10):
     random.shuffle(data)
     return data
 
-# Generate
+# Generate 10,000+ samples
 random.seed(42)
-dataset = generate_dataset(samples_per_role=10)
+dataset = generate_dataset(samples_per_role=103)
 
 # Save
 output_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'jobs_dataset_comprehensive.csv')
@@ -505,12 +547,18 @@ for path in [output_path, main_path]:
         writer.writeheader()
         writer.writerows(dataset)
 
+# Print summary
 print(f"=" * 60)
 print(f"Generated comprehensive job roles dataset")
 print(f"=" * 60)
 print(f"Total samples: {len(dataset)}")
 print(f"Total roles: {len(ROLES)}")
-print(f"Samples per role: 10")
-print(f"\nAll {len(ROLES)} roles:")
-for i, role in enumerate(sorted(ROLES.keys()), 1):
-    print(f"  {i:2}. {role}")
+print(f"Samples per role: 103")
+print(f"\nClass distribution:")
+role_counts = {}
+for d in dataset:
+    role_counts[d['role']] = role_counts.get(d['role'], 0) + 1
+for role in sorted(role_counts.keys()):
+    print(f"  {role}: {role_counts[role]}")
+print(f"\nBalance check: {'BALANCED' if len(set(role_counts.values())) == 1 else 'IMBALANCED'}")
+

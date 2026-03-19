@@ -128,9 +128,9 @@ uploads/
 # ===========================================
 # ML Models (large binary files)
 # ===========================================
-# Uncomment if you don't want to track models:
-# backend-node/models/*.joblib
-# backend-node/models/*.pkl
+# Tracking models disabled:
+backend-node/models/*.joblib
+backend-node/models/*.pkl
 
 # ===========================================
 # Logs

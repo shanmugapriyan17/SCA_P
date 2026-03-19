@@ -70,7 +70,20 @@ function extractTextFromTXT(filePath) {
 }
 
 // POST /api/upload-resume - Upload and analyze resume
-router.post('/upload-resume', upload.single('file'), async (req, res) => {
+router.post('/upload-resume', (req, res, next) => {
+    // Populate session from JWT so the upload is associated with the user
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.SECRET_KEY || 'your-secret-key-change-in-production';
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const decoded = jwt.verify(authHeader.substring(7), JWT_SECRET);
+            req.session.userId = decoded.userId;
+            req.session.username = decoded.username;
+        } catch (e) { /* ignore - upload anonymously */ }
+    }
+    next();
+}, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -106,6 +119,7 @@ router.post('/upload-resume', upload.single('file'), async (req, res) => {
         console.log('=== RESUME UPLOAD DEBUG ===');
         console.log('Text extracted, length:', text.length);
         console.log('First 200 chars:', text.substring(0, 200));
+        console.log('User ID:', userId);
 
         // Extract skills from text
         const skills = extractSkills(text);
@@ -131,6 +145,7 @@ router.post('/upload-resume', upload.single('file'), async (req, res) => {
 
         res.json({
             success: true,
+            text: text,
             file_url: `/uploads/resumes/${filename}`,
             filename: filename,
             skills: skills,

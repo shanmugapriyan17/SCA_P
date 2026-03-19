@@ -1,1024 +1,832 @@
-import { useState, useRef } from 'react';
-import Header from '../components/Common/Header';
-import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
 import api from '../api/client';
-import jsPDF from 'jspdf';
+import Header from '../components/Common/Header';
 
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+/* ═══════════════════════════════════════════════════════════════
+   Sub-components
+   ═══════════════════════════════════════════════════════════════ */
+
+const IND = '#4f46e5'; const VIO = '#7c3aed'; const FONT = "'Poppins',system-ui,sans-serif";
+
+const SkillTag = ({ name, type }) => {
+    const cfg = {
+        matched: { bg: '#ecfdf5', color: '#059669', border: '#6ee7b7', icon: 'check_circle' },
+        missing: { bg: '#fff1f2', color: '#e11d48', border: '#fda4af', icon: 'cancel' },
+        neutral: { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1', icon: 'tag' },
+    };
+    const c = cfg[type] || cfg.neutral;
+    return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.color, border: `1px solid ${c.border}`, fontFamily: FONT }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>{c.icon}</span>
+            {name}
+        </span>
+    );
+};
+
+const StepConnector = () => (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+        <div style={{ width: '2px', height: '40px', background: 'linear-gradient(to bottom,#a5b4fc,#e0e7ff)', borderRadius: '99px' }} />
+    </div>
+);
+
+const StepBadge = ({ number, icon, label }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, background: `linear-gradient(135deg,${IND},${VIO})`, color: '#fff', boxShadow: '0 4px 12px rgba(79,70,229,0.3)', flexShrink: 0 }}>{number}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '20px', color: IND }}>{icon}</span>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: FONT }}>{label}</h2>
+        </div>
+    </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════════════════════════════ */
 function ResumeAnalyzer() {
-    const [activeTab, setActiveTab] = useState('step1');
     const [file, setFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
-    const [uploadSuccess, setUploadSuccess] = useState(false);
-    const [extractedSkills, setExtractedSkills] = useState([]);
-    const [resumeText, setResumeText] = useState('');
+    const [pasteText, setPasteText] = useState('');
+    const [inputMode, setInputMode] = useState('upload'); // 'upload' | 'paste'
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingStep, setLoadingStep] = useState('');
+    const [loadingProgress, setLoadingProgress] = useState(0);
+    const [result, setResult] = useState(null);
     const [error, setError] = useState('');
-    const [predicting, setPredicting] = useState(false);
-    const [prediction, setPrediction] = useState(null);
-    const [showPercentages, setShowPercentages] = useState({});
-    const [jobInput, setJobInput] = useState('');
-    const [jobFitResult, setJobFitResult] = useState(null);
-    const [analyzingFit, setAnalyzingFit] = useState(false);
+    const [selectedPredictionIdx, setSelectedPredictionIdx] = useState(0);
+    const [visibleSections, setVisibleSections] = useState([]);
+    const [perPredCourses, setPerPredCourses] = useState({});  // cache courses per role
+    const [isFetchingCourses, setIsFetchingCourses] = useState(false);
     const fileInputRef = useRef(null);
 
+    // ── Role Search State ──
+    const [roleQuery, setRoleQuery] = useState('');
+    const [allRoles, setAllRoles] = useState([]);
+    const [roleSearchResult, setRoleSearchResult] = useState(null);
+    const [isSearchingRole, setIsSearchingRole] = useState(false);
+    const [showRoleSuggestions, setShowRoleSuggestions] = useState(false);
+    const [activeTab, setActiveTab] = useState('predicted'); // 'predicted' | 'custom'
+    const roleInputRef = useRef(null);
+
+    /* ─── Load roles list on mount for autocomplete ─── */
+    useEffect(() => {
+        api.get('/api/analysis/roles-list')
+            .then(res => setAllRoles(res.data?.roles || []))
+            .catch(() => { });
+    }, []);
+
+    /* ─── Load cached analysis state on mount ─── */
+    useEffect(() => {
+        const cached = localStorage.getItem('resumeAnalysisCache');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                if (parsed.result) {
+                    setResult(parsed.result);
+                    setSelectedPredictionIdx(parsed.selectedPredictionIdx || 0);
+                    setActiveTab(parsed.activeTab || 'predicted');
+                    if (parsed.roleSearchResult) setRoleSearchResult(parsed.roleSearchResult);
+                    if (parsed.perPredCourses) setPerPredCourses(parsed.perPredCourses);
+                    if (parsed.roleQuery) setRoleQuery(parsed.roleQuery);
+                }
+            } catch (e) {
+                console.error('Failed to load cache:', e);
+            }
+        }
+    }, []);
+
+    /* ─── Save analysis state to cache when it changes ─── */
+    useEffect(() => {
+        if (result) {
+            localStorage.setItem('resumeAnalysisCache', JSON.stringify({
+                result,
+                selectedPredictionIdx,
+                activeTab,
+                roleSearchResult,
+                perPredCourses,
+                roleQuery
+            }));
+        }
+    }, [result, selectedPredictionIdx, activeTab, roleSearchResult, perPredCourses, roleQuery]);
+
+    /* ─── Animate sections appearing one by one ─── */
+    useEffect(() => {
+        if (result) {
+            const sections = ['skills', 'predictions', 'fit', 'courses'];
+            sections.forEach((section, i) => {
+                setTimeout(() => {
+                    setVisibleSections(prev => [...prev, section]);
+                }, (i + 1) * 400);
+            });
+        } else {
+            setVisibleSections([]);
+        }
+    }, [result]);
+
+    /* ─── Filtered role suggestions for autocomplete ─── */
+    const filteredRoles = roleQuery.length >= 2
+        ? allRoles.filter(r => r.toLowerCase().includes(roleQuery.toLowerCase())).slice(0, 6)
+        : [];
+
+    /* ─── Upload handler ─── */
     const handleFileUpload = async (e) => {
-        const selectedFile = e.target.files[0];
+        const selectedFile = e.target.files?.[0];
         if (!selectedFile) return;
-
-        const allowedTypes = ['application/pdf', 'text/plain'];
-        if (!allowedTypes.includes(selectedFile.type)) {
-            setError('Invalid file type. Allowed: PDF, TXT');
-            return;
-        }
-
-        if (selectedFile.size > 5 * 1024 * 1024) {
-            setError('File too large. Maximum size is 5MB');
-            return;
-        }
-
         setFile(selectedFile);
+        setIsLoading(true);
         setError('');
-        setUploading(true);
+        setLoadingProgress(10);
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
 
         try {
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-
-            const response = await api.post('/api/upload-resume', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            setLoadingStep('Uploading & extracting text from resume...');
+            setLoadingProgress(25);
+            const uploadRes = await api.post('/api/upload-resume', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
+            const text = uploadRes.data?.text || '';
+            const skills = uploadRes.data?.skills || [];
 
-            setExtractedSkills(response.data.skills || []);
-            setResumeText(response.data.preview_text || 'Resume text not available');
-            setUploadSuccess(true);
+            if (!text && skills.length === 0) {
+                throw new Error('Could not extract content from your resume.');
+            }
+
+            setLoadingStep('Analyzing your skills...');
+            setLoadingProgress(50);
+            await new Promise(r => setTimeout(r, 300));
+
+            setLoadingStep('Predicting your best-fit career roles...');
+            setLoadingProgress(70);
+
+            setLoadingStep('Analyzing skill gaps & recommending courses...');
+            setLoadingProgress(85);
+
+            const analysisRes = await api.post('/api/analysis/full', { text, skills });
+            setLoadingProgress(100);
+            setResult(analysisRes.data);
+            setSelectedPredictionIdx(0);
+            setActiveTab('predicted');
+            setRoleSearchResult(null);
+            setRoleQuery('');
         } catch (err) {
-            setError(err.message || 'Failed to upload resume');
+            console.error('Analysis Error:', err);
+            setError(err.response?.data?.error || err.message || 'Analysis failed. Please try again.');
         } finally {
-            setUploading(false);
+            setIsLoading(false);
+            setLoadingStep('');
+            setLoadingProgress(0);
         }
     };
 
-    const handlePredictRole = async () => {
-        setPredicting(true);
+    /* ─── Paste handler ─── */
+    const handlePasteAnalyze = async () => {
+        if (!pasteText.trim()) return;
+        setIsLoading(true);
         setError('');
-
+        setLoadingProgress(20);
         try {
-            const response = await api.post('/api/predict-role', {
-                text: resumeText,
-                skills: extractedSkills
-            });
+            setLoadingStep('Identifying your key skills...');
+            setLoadingProgress(40);
+            await new Promise(r => setTimeout(r, 200));
 
-            setPrediction(response.data);
-            setShowPercentages({});
-            goToStep('step3');
+            setLoadingStep('Finding your ideal career matches...');
+            setLoadingProgress(60);
+
+            setLoadingStep('Running skill gap analysis...');
+            setLoadingProgress(80);
+
+            const analysisRes = await api.post('/api/analysis/full', { text: pasteText });
+            setLoadingProgress(100);
+            setResult(analysisRes.data);
+            setSelectedPredictionIdx(0);
+            setActiveTab('predicted');
+            setRoleSearchResult(null);
+            setRoleQuery('');
         } catch (err) {
-            setError(err.message || 'Failed to predict career role');
+            console.error('Analysis Error:', err);
+            setError(err.response?.data?.error || err.message || 'Analysis failed.');
         } finally {
-            setPredicting(false);
+            setIsLoading(false);
+            setLoadingStep('');
+            setLoadingProgress(0);
         }
     };
 
-    const goToStep = (step) => {
-        setActiveTab(step);
-    };
-
-    const togglePercentage = (index) => {
-        setShowPercentages(prev => ({
-            ...prev,
-            [index]: !prev[index]
-        }));
-    };
-
-    // Job Fit Analyzer - Skills required for different jobs (97 roles)
-    const JOB_SKILLS_MAP = {
-        // AI/ML/Data
-        'prompt engineer': ['Prompt Engineering', 'ChatGPT', 'GPT', 'LLM', 'OpenAI', 'Claude', 'Langchain', 'AI', 'NLP'],
-        'llm engineer': ['LLM', 'Python', 'Transformers', 'Fine-tuning', 'NLP', 'Hugging Face', 'RAG', 'Vector Database'],
-        'generative ai engineer': ['Generative AI', 'Python', 'LLM', 'Stable Diffusion', 'Deep Learning', 'PyTorch'],
-        'ai/ml engineer': ['Python', 'TensorFlow', 'Machine Learning', 'Deep Learning', 'NumPy', 'PyTorch', 'Keras'],
-        'ai product manager': ['AI', 'Product Management', 'Machine Learning', 'Strategy', 'Roadmapping', 'Data Science'],
-        'mlops engineer': ['MLOps', 'Python', 'Docker', 'Kubernetes', 'MLflow', 'Kubeflow', 'AWS SageMaker'],
-        'data scientist': ['Python', 'Machine Learning', 'TensorFlow', 'Pandas', 'NumPy', 'SQL', 'Statistics', 'Scikit-learn'],
-        'data analyst': ['Python', 'SQL', 'Data Analysis', 'Pandas', 'Excel', 'Tableau', 'Power BI', 'Statistics'],
-        'data engineer': ['Python', 'SQL', 'ETL', 'Apache Spark', 'Airflow', 'Kafka', 'Snowflake', 'Data Warehousing'],
-        'machine learning engineer': ['Python', 'TensorFlow', 'PyTorch', 'Machine Learning', 'Deep Learning', 'Docker', 'AWS'],
-        'nlp engineer': ['Python', 'NLP', 'BERT', 'Transformers', 'Deep Learning', 'Hugging Face', 'SpaCy'],
-        'computer vision engineer': ['Python', 'OpenCV', 'Deep Learning', 'TensorFlow', 'Image Processing', 'YOLO'],
-        'ai research scientist': ['Python', 'Deep Learning', 'Research', 'Machine Learning', 'Mathematics', 'PyTorch'],
-        'big data engineer': ['Apache Spark', 'Hadoop', 'Python', 'SQL', 'Scala', 'Kafka', 'Hive'],
-        'business intelligence developer': ['SQL', 'ETL', 'Data Warehousing', 'Tableau', 'Power BI', 'Reporting'],
-
-        // Software Development
-        'software engineer': ['Python', 'Java', 'JavaScript', 'C++', 'Git', 'SQL', 'Docker', 'AWS', 'Algorithms'],
-        'senior software engineer': ['System Design', 'Architecture', 'Python', 'Java', 'Leadership', 'Microservices'],
-        'junior developer': ['JavaScript', 'HTML', 'CSS', 'Python', 'Git', 'SQL', 'React'],
-        'frontend developer': ['JavaScript', 'React', 'HTML', 'CSS', 'TypeScript', 'Vue', 'Angular', 'SASS'],
-        'backend developer': ['Python', 'Java', 'Node.js', 'SQL', 'MongoDB', 'REST API', 'Docker', 'Microservices'],
-        'full stack developer': ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'MongoDB', 'HTML', 'CSS', 'Docker'],
-        'web developer': ['HTML', 'CSS', 'JavaScript', 'PHP', 'WordPress', 'MySQL', 'Bootstrap'],
-        'api developer': ['REST API', 'GraphQL', 'Node.js', 'Python', 'Swagger', 'OAuth', 'Postman'],
-        'tech lead': ['Technical Leadership', 'Code Review', 'Architecture', 'Mentoring', 'Agile', 'System Design'],
-        'software architect': ['System Design', 'Architecture Patterns', 'Microservices', 'Cloud', 'API Design'],
-
-        // Mobile
-        'mobile developer': ['React Native', 'Flutter', 'iOS', 'Android', 'Swift', 'Kotlin', 'JavaScript'],
-        'ios developer': ['Swift', 'iOS', 'Xcode', 'UIKit', 'SwiftUI', 'Core Data', 'REST API'],
-        'android developer': ['Kotlin', 'Android', 'Android Studio', 'Java', 'Jetpack Compose', 'Firebase'],
-        'react native developer': ['React Native', 'JavaScript', 'TypeScript', 'Redux', 'iOS', 'Android'],
-        'flutter developer': ['Flutter', 'Dart', 'Mobile', 'iOS', 'Android', 'Firebase', 'State Management'],
-
-        // DevOps/Cloud
-        'devops engineer': ['Docker', 'Kubernetes', 'AWS', 'Linux', 'CI/CD', 'Terraform', 'Jenkins', 'Ansible'],
-        'cloud engineer': ['AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Linux', 'Networking'],
-        'cloud architect': ['AWS', 'Azure', 'Architecture', 'Cloud Design', 'Security', 'Terraform'],
-        'site reliability engineer': ['Linux', 'Kubernetes', 'Monitoring', 'Python', 'Prometheus', 'Grafana'],
-        'platform engineer': ['Kubernetes', 'Docker', 'CI/CD', 'Terraform', 'ArgoCD', 'Helm', 'GitOps'],
-        'systems administrator': ['Linux', 'Windows Server', 'Networking', 'Active Directory', 'VMware', 'Bash'],
-        'network engineer': ['Networking', 'Cisco', 'TCP/IP', 'Firewall', 'Routing', 'CCNA', 'VPN'],
-        'infrastructure engineer': ['Linux', 'Networking', 'Virtualization', 'Docker', 'Ansible', 'Terraform'],
-        'release engineer': ['CI/CD', 'Git', 'Jenkins', 'Deployment', 'Docker', 'Build Systems'],
-
-        // Security
-        'security engineer': ['Security', 'Penetration Testing', 'SIEM', 'Firewalls', 'Linux', 'OWASP'],
-        'cybersecurity analyst': ['Security', 'Threat Analysis', 'SIEM', 'Incident Response', 'Splunk'],
-        'application security engineer': ['Application Security', 'OWASP', 'Code Review', 'SAST', 'DAST'],
-        'information security analyst': ['Information Security', 'Risk Assessment', 'Compliance', 'ISO 27001'],
-        'penetration tester': ['Penetration Testing', 'Ethical Hacking', 'Kali Linux', 'Burp Suite', 'Metasploit'],
-
-        // Database
-        'database administrator': ['SQL', 'PostgreSQL', 'MySQL', 'Database Design', 'Performance Tuning', 'Oracle'],
-        'database developer': ['SQL', 'Stored Procedures', 'Database Design', 'PostgreSQL', 'T-SQL', 'PL/SQL'],
-        'database architect': ['Database Design', 'Data Modeling', 'SQL', 'Architecture', 'Scalability'],
-
-        // QA
-        'qa engineer': ['Testing', 'Selenium', 'Automation', 'Test Cases', 'Python', 'Java', 'Cypress'],
-        'qa lead': ['Test Management', 'Team Leadership', 'Testing', 'Strategy', 'Automation'],
-        'sdet': ['Automation', 'Java', 'Python', 'Selenium', 'CI/CD', 'Test Frameworks'],
-        'manual tester': ['Manual Testing', 'Test Cases', 'Bug Tracking', 'Regression Testing', 'Jira'],
-        'performance engineer': ['Performance Testing', 'JMeter', 'Load Testing', 'Monitoring', 'Gatling'],
-
-        // Design
-        'ui/ux designer': ['Figma', 'UI Design', 'UX Research', 'Wireframing', 'Prototyping', 'Adobe XD'],
-        'product designer': ['Product Design', 'Figma', 'User Research', 'Prototyping', 'Design Thinking'],
-        'graphic designer': ['Adobe Photoshop', 'Adobe Illustrator', 'Typography', 'Branding', 'InDesign'],
-        'ux researcher': ['User Research', 'Usability Testing', 'Interviews', 'Data Analysis', 'Surveys'],
-        'visual designer': ['Visual Design', 'Adobe Creative Suite', 'Branding', 'UI Design', 'Typography'],
-        'interaction designer': ['Interaction Design', 'Prototyping', 'Animation', 'UX', 'Figma'],
-
-        // Product & Project
-        'product manager': ['Product Management', 'Roadmapping', 'User Stories', 'Agile', 'Analytics', 'Jira'],
-        'technical product manager': ['Product Management', 'Technical Knowledge', 'API', 'System Design', 'SQL'],
-        'product owner': ['Product Ownership', 'Backlog Management', 'User Stories', 'Agile', 'Scrum'],
-        'project manager': ['Project Management', 'Agile', 'Scrum', 'Risk Management', 'Jira', 'PMP'],
-        'program manager': ['Program Management', 'Strategy', 'Stakeholder Management', 'Portfolio', 'Leadership'],
-        'scrum master': ['Scrum', 'Agile', 'Facilitation', 'Sprint Planning', 'Jira', 'Kanban'],
-        'agile coach': ['Agile', 'Scrum', 'Kanban', 'Coaching', 'SAFe', 'Lean', 'Facilitation'],
-
-        // Business
-        'business analyst': ['Business Analysis', 'Requirements Gathering', 'SQL', 'Data Analysis', 'Jira'],
-        'business intelligence analyst': ['SQL', 'Tableau', 'Power BI', 'Data Visualization', 'Reporting'],
-        'systems analyst': ['Systems Analysis', 'Requirements', 'Documentation', 'Process Modeling', 'SQL'],
-        'operations analyst': ['Operations', 'Data Analysis', 'Process Improvement', 'Excel', 'Reporting'],
-
-        // Technical Writing & Support
-        'technical writer': ['Technical Writing', 'Documentation', 'API Documentation', 'Markdown', 'Git'],
-        'technical support engineer': ['Troubleshooting', 'Customer Support', 'Linux', 'Networking', 'SQL'],
-        'customer success engineer': ['Customer Success', 'Technical Support', 'API', 'Onboarding', 'SQL'],
-        'support engineer': ['Technical Support', 'Troubleshooting', 'Customer Service', 'Documentation'],
-        'help desk technician': ['Technical Support', 'Troubleshooting', 'Windows', 'Customer Service'],
-        'desktop support engineer': ['Desktop Support', 'Windows', 'Hardware', 'Active Directory', 'Networking'],
-
-        // Architecture
-        'solutions architect': ['System Design', 'Architecture', 'Cloud', 'AWS', 'Microservices', 'Security'],
-        'enterprise architect': ['Enterprise Architecture', 'TOGAF', 'Strategy', 'Cloud', 'Digital Transformation'],
-        'data architect': ['Data Architecture', 'Data Modeling', 'Data Warehousing', 'SQL', 'ETL'],
-        'integration architect': ['Integration', 'API', 'Middleware', 'ESB', 'Microservices', 'REST'],
-
-        // Emerging Tech
-        'blockchain developer': ['Solidity', 'Ethereum', 'Smart Contracts', 'Web3', 'JavaScript', 'Blockchain'],
-        'ar/vr developer': ['Unity', 'C#', '3D Development', 'AR', 'VR', 'Unreal Engine'],
-        'game developer': ['Unity', 'C#', 'Game Design', 'C++', 'Unreal Engine', 'Graphics', '3D'],
-        'iot developer': ['IoT', 'Embedded Systems', 'Python', 'C', 'Arduino', 'MQTT', 'Sensors'],
-        'robotics engineer': ['Robotics', 'ROS', 'Python', 'C++', 'Control Systems', 'Computer Vision'],
-
-        // Leadership
-        'engineering manager': ['Team Leadership', 'People Management', 'Agile', 'Hiring', 'Technical Background'],
-        'director of engineering': ['Engineering Leadership', 'Strategy', 'Team Building', 'Process', 'OKRs'],
-        'vp of engineering': ['Engineering Leadership', 'Strategy', 'Organization Building', 'Technical Vision'],
-        'cto': ['Technology Strategy', 'Leadership', 'Architecture', 'Team Building', 'Innovation'],
-        'it manager': ['IT Management', 'Team Leadership', 'Infrastructure', 'Budget', 'Operations'],
-
-        // Sales & Consulting
-        'sales engineer': ['Technical Sales', 'Product Demo', 'Solution Design', 'Communication', 'API'],
-        'solutions engineer': ['Solutions Design', 'Technical Pre-sales', 'Demo', 'Integration', 'Cloud'],
-        'it consultant': ['IT Consulting', 'Project Management', 'Business Analysis', 'Cloud', 'Strategy'],
-        'technology consultant': ['Technology Consulting', 'Strategy', 'Digital Transformation', 'Cloud'],
-
-        // Marketing Tech
-        'growth engineer': ['Growth', 'A/B Testing', 'Analytics', 'Python', 'SQL', 'Marketing Automation'],
-        'marketing technologist': ['Marketing Technology', 'Analytics', 'Automation', 'CRM', 'SQL'],
-        'seo specialist': ['SEO', 'Analytics', 'Google Analytics', 'Content Strategy', 'HTML'],
-
-        // IT
-        'it administrator': ['IT Administration', 'Windows', 'Active Directory', 'Networking', 'Linux']
-    };
-
-    // Job descriptions for each role (top 3 unsuitable roles)
-    const JOB_DESCRIPTIONS = {
-        'prompt engineer': 'A Prompt Engineer designs, optimizes, and evaluates prompts for large language models like GPT-4, Claude, and other LLMs to achieve desired outputs for various AI applications.',
-        'llm engineer': 'An LLM Engineer builds and deploys large language model applications, implements RAG systems, fine-tunes models, and creates production-ready AI systems.',
-        'generative ai engineer': 'A Generative AI Engineer develops applications using generative models for text, image, and content creation using technologies like Stable Diffusion and GPT.',
-        'ai/ml engineer': 'An AI/ML Engineer builds and deploys machine learning models, develops AI solutions, and implements deep learning algorithms for production systems.',
-        'data scientist': 'A Data Scientist analyzes complex datasets to extract insights and build predictive models using statistical methods and machine learning.',
-        'software engineer': 'A Software Engineer designs, develops, and maintains software applications with clean, efficient code and collaborative development practices.',
-        'frontend developer': 'A Frontend Developer builds user-facing web interfaces using HTML, CSS, and JavaScript frameworks with focus on responsive design.',
-        'backend developer': 'A Backend Developer builds server-side applications, APIs, and databases, handling business logic and system integration.',
-        'full stack developer': 'A Full Stack Developer works on both frontend and backend, building complete web applications from UI to database.',
-        'devops engineer': 'A DevOps Engineer automates deployment pipelines, manages infrastructure, and ensures continuous integration and delivery.',
-        'cloud engineer': 'A Cloud Engineer designs and manages cloud infrastructure on AWS, Azure, or GCP with focus on scalability and security.',
-        'product manager': 'A Product Manager defines product vision, manages roadmaps, and works with teams to deliver valuable features to users.',
-        'ui/ux designer': 'A UI/UX Designer creates intuitive user interfaces and experiences through research, wireframing, and prototyping.',
-        'qa engineer': 'A QA Engineer ensures software quality through testing, automation, and quality assurance processes.'
-    };
-
-    const analyzeJobFit = () => {
-        if (!jobInput.trim()) return;
-
-        setAnalyzingFit(true);
-        setJobFitResult(null);
-
-        // Simulate analysis delay
-        setTimeout(() => {
-            const jobLower = jobInput.toLowerCase().trim();
-            let requiredSkills = [];
-            let matchedJob = null;
-
-            // Find matching job (with fuzzy matching for typos)
-            for (const [job, skills] of Object.entries(JOB_SKILLS_MAP)) {
-                if (jobLower.includes(job) || job.includes(jobLower)) {
-                    requiredSkills = skills;
-                    matchedJob = job;
-                    break;
-                }
-            }
-
-            // If no exact match, try partial matching for typo correction
-            if (!matchedJob) {
-                const jobWords = jobLower.split(/[\s\-_]+/);
-                for (const [job, skills] of Object.entries(JOB_SKILLS_MAP)) {
-                    const jobParts = job.split(' ');
-                    // Check for partial word matches (handles typos like "develper" -> "developer")
-                    const hasMatch = jobWords.some(word => {
-                        if (word.length < 3) return false;
-                        return jobParts.some(part => {
-                            // Check if words are similar (allows 2 char difference)
-                            if (part.startsWith(word.slice(0, 3)) || word.startsWith(part.slice(0, 3))) {
-                                return true;
-                            }
-                            // Check if one contains the other
-                            return part.includes(word) || word.includes(part);
-                        });
-                    });
-                    if (hasMatch) {
-                        requiredSkills = skills;
-                        matchedJob = job;
-                        break;
-                    }
-                }
-            }
-
-            // Default to software engineer if no match
-            if (!matchedJob) {
-                matchedJob = 'software engineer';
-                requiredSkills = JOB_SKILLS_MAP['software engineer'];
-            }
-
-            // Get job description
-            const jobDescription = JOB_DESCRIPTIONS[matchedJob];
-
-            // Format corrected job title (Title Case)
-            const correctedJobTitle = matchedJob
-                .split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-
-            // Calculate match percentage
-            const userSkillsLower = extractedSkills.map(s => s.toLowerCase());
-            const matchedSkills = requiredSkills.filter(skill =>
-                userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us))
-            );
-            const missingSkills = requiredSkills.filter(skill =>
-                !userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us))
-            );
-
-            const fitPercentage = Math.round((matchedSkills.length / requiredSkills.length) * 100);
-
-            let fitLevel, fitColor, fitMessage;
-            if (fitPercentage >= 70) {
-                fitLevel = 'Excellent Fit';
-                fitColor = '#10b981';
-                fitMessage = 'You are highly qualified for this role!';
-            } else if (fitPercentage >= 50) {
-                fitLevel = 'Good Fit';
-                fitColor = '#6366f1';
-                fitMessage = 'You have good potential for this role with some skill development.';
-            } else if (fitPercentage >= 30) {
-                fitLevel = 'Partial Fit';
-                fitColor = '#f59e0b';
-                fitMessage = 'Consider building more relevant skills for this role.';
-            } else {
-                fitLevel = 'Needs Development';
-                fitColor = '#ef4444';
-                fitMessage = 'This role requires significant skill building.';
-            }
-
-            setJobFitResult({
-                job: jobInput,
-                matchedJob,
-                correctedJobTitle,
-                jobDescription,
-                fitPercentage,
-                fitLevel,
-                fitColor,
-                fitMessage,
-                matchedSkills,
-                missingSkills,
-                requiredSkills
+    /* ─── Custom role search handler ─── */
+    const handleRoleSearch = async (customQuery) => {
+        const q = customQuery || roleQuery;
+        if (!q.trim()) return;
+        setIsSearchingRole(true);
+        setShowRoleSuggestions(false);
+        try {
+            const res = await api.post('/api/analysis/search-role', {
+                query: q,
+                user_skills: result?.user_skills || [],
             });
-
-            setAnalyzingFit(false);
-        }, 800);
+            setRoleSearchResult(res.data);
+            setActiveTab('custom');
+        } catch (err) {
+            console.error('Role search error:', err);
+        } finally {
+            setIsSearchingRole(false);
+        }
     };
 
-    // Generate PDF Report
-    const generateReport = () => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 20;
-        let y = 20;
+    /* ─── Derived data (safe access) ─── */
+    const prediction = result?.prediction || {};
+    const topPredictions = result?.top_predictions || [];
+    const userSkills = result?.user_skills || [];
+    const explanation = result?.explanation || {};
 
-        // Colors
-        const primaryColor = [99, 102, 241]; // Indigo
-        const textDark = [31, 41, 55];
-        const textGray = [107, 114, 128];
+    // Decide which data to show based on tab
+    const isCustomView = activeTab === 'custom' && roleSearchResult;
 
-        // Header - Title
-        doc.setFillColor(...primaryColor);
-        doc.rect(0, 0, pageWidth, 35, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(20);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Career Analysis Report', pageWidth / 2, 22, { align: 'center' });
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Generated by Smart Career Advisor', pageWidth / 2, 30, { align: 'center' });
+    // Per-prediction skill gap: use enriched data from each prediction card
+    const selectedPred = topPredictions[selectedPredictionIdx];
+    const displaySkillGap = isCustomView
+        ? (roleSearchResult.skill_gap || {})
+        : (selectedPred?.skill_gap || result?.skill_gap || {});
 
-        y = 50;
+    // Courses: use cached per-prediction courses, or primary from result
+    const selectedRole = selectedPred?.role || prediction.predicted_role || 'N/A';
+    const displayCourseRecs = isCustomView
+        ? (roleSearchResult.course_recommendations || {})
+        : (perPredCourses[selectedRole] || result?.course_recommendations || {});
+    const displayRole = isCustomView ? (roleSearchResult.matched_role || 'N/A') : selectedRole;
 
-        // Section: Resume File
-        doc.setTextColor(...textDark);
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Resume Information', margin, y);
-        y += 8;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...textGray);
-        doc.text(`File: ${file?.name || 'N/A'}`, margin, y);
-        doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - margin - 40, y);
-        y += 12;
+    const learningPath = displayCourseRecs?.personalized_learning_path || [];
 
-        // Section: Extracted Skills
-        doc.setTextColor(...textDark);
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Extracted Skills', margin, y);
-        y += 8;
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...textGray);
-        const skillsText = extractedSkills.length > 0 ? extractedSkills.join(', ') : 'No skills extracted';
-        const skillsLines = doc.splitTextToSize(skillsText, pageWidth - (margin * 2));
-        doc.text(skillsLines, margin, y);
-        y += skillsLines.length * 5 + 10;
+    // Get explainability features
+    const explainTechniques = explanation?.techniques || [];
+    const featureContrib = explainTechniques.find(t => t.name === 'Feature Contribution Analysis');
+    const limeData = explainTechniques.find(t => t.name?.includes('LIME'));
+    const topFeatures = featureContrib?.top_contributing_features || [];
 
-        // Section: AI Model Predictions
-        if (prediction) {
-            doc.setTextColor(...textDark);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('AI Model Predictions', margin, y);
-            y += 8;
+    // SHAP and chart data
+    const shapData = explainTechniques.find(t => t.name?.includes('SHAP'));
+    const explainCharts = explanation?.charts || {};
 
-            // SVM & RF boxes
-            doc.setFillColor(249, 250, 251);
-            doc.roundedRect(margin, y, 75, 22, 3, 3, 'F');
-            doc.roundedRect(margin + 80, y, 75, 22, 3, 3, 'F');
+    // Fit Score
+    const fitScore = displaySkillGap.fit_percentage
+        ? Math.round(displaySkillGap.fit_percentage)
+        : 0;
 
-            doc.setFontSize(8);
-            doc.setTextColor(...textGray);
-            doc.text('SVM MODEL', margin + 5, y + 7);
-            doc.text('RANDOM FOREST', margin + 85, y + 7);
+    const fitLabel =
+        fitScore >= 80 ? 'Excellent Fit' :
+            fitScore >= 60 ? 'Strong Fit' :
+                fitScore >= 40 ? 'Moderate Fit' :
+                    fitScore >= 20 ? 'Developing' : 'Early Stage';
 
-            doc.setFontSize(10);
-            doc.setTextColor(...textDark);
-            doc.setFont('helvetica', 'bold');
-            doc.text(prediction.svm_role || 'N/A', margin + 5, y + 16);
-            doc.text(prediction.rf_role || 'N/A', margin + 85, y + 16);
-            y += 30;
+    const fitColor =
+        fitScore >= 80 ? '#10b981' :
+            fitScore >= 60 ? '#3b82f6' :
+                fitScore >= 40 ? '#f59e0b' : '#ef4444';
 
-            // Top Recommended Roles
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.text('Top Recommended Roles', margin, y);
-            y += 8;
-
-            prediction.top_roles?.slice(0, 3).forEach((role, index) => {
-                const medals = ['🥇', '🥈', '🥉'];
-                doc.setFontSize(10);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...textDark);
-                doc.text(`${index + 1}. ${role.role}`, margin + 5, y);
-                doc.setTextColor(...textGray);
-                doc.text(`${Math.round(role.confidence * 100)}%`, margin + 120, y);
-                y += 7;
-            });
-            y += 8;
-        }
-
-        // Section: Job Fit Analysis (if available)
-        if (jobFitResult) {
-            doc.setTextColor(...textDark);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Job Fit Analysis', margin, y);
-            y += 8;
-
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`Target Role: ${jobFitResult.correctedJobTitle}`, margin, y);
-            y += 6;
-
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(...textGray);
-            const descLines = doc.splitTextToSize(jobFitResult.jobDescription, pageWidth - (margin * 2));
-            doc.text(descLines.slice(0, 2), margin, y);
-            y += descLines.slice(0, 2).length * 4 + 6;
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(11);
-            doc.setTextColor(...primaryColor);
-            doc.text(`Fit Level: ${jobFitResult.fitLevel} (${jobFitResult.fitPercentage}%)`, margin, y);
-            y += 10;
-
-            // Matched Skills
-            if (jobFitResult.matchedSkills?.length > 0) {
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(16, 185, 129); // Green
-                doc.text(`Skills You Have (${jobFitResult.matchedSkills.length}):`, margin, y);
-                y += 5;
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...textGray);
-                const matchedText = jobFitResult.matchedSkills.join(', ');
-                const matchedLines = doc.splitTextToSize(matchedText, pageWidth - (margin * 2));
-                doc.text(matchedLines.slice(0, 1), margin, y);
-                y += 8;
-            }
-
-            // Missing Skills
-            if (jobFitResult.missingSkills?.length > 0) {
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(239, 68, 68); // Red
-                doc.text(`Skills to Develop (${jobFitResult.missingSkills.length}):`, margin, y);
-                y += 5;
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(...textGray);
-                const missingText = jobFitResult.missingSkills.join(', ');
-                const missingLines = doc.splitTextToSize(missingText, pageWidth - (margin * 2));
-                doc.text(missingLines.slice(0, 1), margin, y);
-                y += 10;
-            }
-        }
-
-        // Footer
-        doc.setFillColor(249, 250, 251);
-        doc.rect(0, 280, pageWidth, 17, 'F');
-        doc.setFontSize(8);
-        doc.setTextColor(...textGray);
-        doc.text('Smart Career Advisor - AI-powered career guidance', pageWidth / 2, 288, { align: 'center' });
-
-        // Save the PDF
-        const fileName = `Career_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-        doc.save(fileName);
+    const chartData = {
+        labels: ['Match', 'Gap'],
+        datasets: [{
+            data: [fitScore, 100 - fitScore],
+            backgroundColor: [fitColor, '#e2e8f0'],
+            borderWidth: 0,
+            cutout: '78%',
+        }],
+    };
+    const chartOptions = {
+        maintainAspectRatio: false,
+        plugins: { tooltip: { enabled: false }, legend: { display: false } },
     };
 
+    /* ─── Reset ─── */
+    const handleReset = () => {
+        setResult(null);
+        setFile(null);
+        setPasteText('');
+        setError('');
+        setVisibleSections([]);
+        setSelectedPredictionIdx(0);
+        setRoleSearchResult(null);
+        setRoleQuery('');
+        setActiveTab('predicted');
+        setPerPredCourses({});
+        setIsFetchingCourses(false);
+    };
+
+    /* Medal icons for top 3 */
+    const medals = ['🥇', '🥈', '🥉'];
+
+    const sectionVisible = (name) => visibleSections.includes(name);
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     return (
-        <>
+        <div style={{ minHeight: '100vh', background: '#f8f9ff', fontFamily: FONT, overflowX: 'hidden' }}>
             <Header />
 
-            <main className="main">
-                <div className="resume-analyzer-container">
-                    <h1>Resume Analyzer</h1>
-                    <p className="subtitle">Upload your resume and get instant AI-powered career insights</p>
+            <main style={{ maxWidth: '960px', margin: '0 auto', padding: isMobile ? '100px 14px 40px' : '110px 24px 60px', boxSizing: 'border-box' }}>
 
-                    <div className="analyzer-tabs">
-                        <div className="tab-navigation">
-                            <button
-                                className={`tab-btn ${activeTab === 'step1' ? 'active' : ''}`}
-                                onClick={() => goToStep('step1')}
+                {/* ════════ Page Header ════════ */}
+                <div style={{ marginBottom: '40px', textAlign: 'center', maxWidth: '640px', margin: '0 auto 40px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '99px', background: '#eef2ff', marginBottom: '16px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px', color: IND }}>auto_awesome</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: IND, letterSpacing: '0.5px', textTransform: 'uppercase' }}>System-Powered Career Intelligence</span>
+                    </div>
+                    <h1 style={{ fontSize: isMobile ? '28px' : '38px', fontWeight: 900, color: '#0f172a', margin: '0 0 12px', lineHeight: 1.2 }}>
+                        Professional{' '}
+                        <span style={{ background: `linear-gradient(135deg,${IND},${VIO})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Resume Audit</span>
+                    </h1>
+                    <p style={{ fontSize: '15px', color: '#64748b', lineHeight: 1.7, margin: 0 }}>
+                        Upload your resume or paste your skills — our system analyzes skills, predicts career roles, and builds a personalized learning path.
+                    </p>
+                </div>
+
+                {/* ════════════════════════════════════════════════
+                    STEP 1 — Upload / Paste
+                   ════════════════════════════════════════════════ */}
+                {!result && !isLoading && (
+                    <div style={{ maxWidth: '640px', margin: '0 auto' }}>
+                        <StepBadge number={1} icon="upload_file" label="Upload Your Resume" />
+
+                        {/* Toggle */}
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px' }}>
+                            {['upload', 'paste'].map((mode) => (
+                                <button key={mode} onClick={() => setInputMode(mode)} style={{
+                                    padding: '10px 22px', borderRadius: '99px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: FONT, transition: 'all 0.2s',
+                                    background: inputMode === mode ? `linear-gradient(135deg,${IND},${VIO})` : '#fff',
+                                    color: inputMode === mode ? '#fff' : '#64748b',
+                                    border: inputMode === mode ? 'none' : '1px solid #e2e8f0',
+                                    boxShadow: inputMode === mode ? '0 4px 14px rgba(79,70,229,0.3)' : 'none',
+                                }}>
+                                    {mode === 'upload' ? '📄 Upload File' : '✏️ Paste Text'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {inputMode === 'upload' ? (
+                            <div onClick={() => fileInputRef.current?.click()} style={{
+                                background: '#fff', border: `2px dashed #c7d2fe`, borderRadius: '24px',
+                                padding: isMobile ? '48px 24px' : '64px', textAlign: 'center', cursor: 'pointer',
+                                boxShadow: '0 4px 24px rgba(79,70,229,0.07)', transition: 'all 0.2s',
+                            }}
+                                onMouseEnter={e => { e.currentTarget.style.borderColor = IND; e.currentTarget.style.background = '#fafbff'; }}
+                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#c7d2fe'; e.currentTarget.style.background = '#fff'; }}
                             >
-                                <span className="tab-number">1</span>
-                                <span className="tab-label">Upload Resume</span>
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'step2' ? 'active' : ''}`}
-                                disabled={!uploadSuccess}
-                                onClick={() => uploadSuccess && goToStep('step2')}
+                                <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '36px', color: IND }}>upload_file</span>
+                                </div>
+                                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px', fontFamily: FONT }}>Drop your resume here</h3>
+                                <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px' }}>Supports PDF, TXT — Max 5 MB</p>
+                                <span style={{ display: 'inline-block', padding: '12px 28px', background: `linear-gradient(135deg,${IND},${VIO})`, color: '#fff', borderRadius: '14px', fontWeight: 700, fontSize: '14px', boxShadow: '0 4px 14px rgba(79,70,229,0.3)' }}>Browse Files</span>
+                                <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept=".pdf,.txt" onChange={handleFileUpload} />
+                            </div>
+                        ) : (
+                            <div style={{ background: '#fff', borderRadius: '20px', padding: '28px', border: '1px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+                                <textarea value={pasteText} onChange={e => setPasteText(e.target.value)}
+                                    placeholder="Paste your resume text, skills, or job description here..."
+                                    rows={8} style={{
+                                        width: '100%', padding: '16px', border: '2px solid #e2e8f0', borderRadius: '14px',
+                                        fontSize: '14px', color: '#334155', fontFamily: FONT, outline: 'none', resize: 'none',
+                                        boxSizing: 'border-box', lineHeight: 1.6,
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = IND}
+                                    onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+                                />
+                                <button onClick={handlePasteAnalyze} disabled={!pasteText.trim()} style={{
+                                    width: '100%', padding: '14px', marginTop: '16px', borderRadius: '14px', border: 'none',
+                                    background: pasteText.trim() ? `linear-gradient(135deg,${IND},${VIO})` : '#e2e8f0',
+                                    color: pasteText.trim() ? '#fff' : '#94a3b8',
+                                    fontSize: '15px', fontWeight: 700, cursor: pasteText.trim() ? 'pointer' : 'not-allowed',
+                                    fontFamily: FONT, boxShadow: pasteText.trim() ? '0 4px 14px rgba(79,70,229,0.3)' : 'none',
+                                }}>Analyze My Profile</button>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div style={{ marginTop: '20px', padding: '14px 16px', background: '#fff1f2', borderRadius: '14px', border: '1px solid #fda4af', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span className="material-symbols-outlined" style={{ color: '#e11d48' }}>warning</span>
+                                <p style={{ fontSize: '13px', color: '#be123c', fontWeight: 600, margin: 0 }}>{error}</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ════════ Loading State ════════ */}
+                {isLoading && (
+                    <div style={{ maxWidth: '480px', margin: '0 auto', textAlign: 'center', padding: '80px 0' }}>
+                        <div style={{ position: 'relative', width: '110px', height: '110px', margin: '0 auto 32px' }}>
+                            <div style={{ position: 'absolute', inset: 0, border: '4px solid #e0e7ff', borderRadius: '50%' }} />
+                            <div style={{ position: 'absolute', inset: 0, border: '4px solid transparent', borderTopColor: IND, borderRadius: '50%', animation: 'spin 0.9s linear infinite' }} />
+                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: '22px', fontWeight: 900, color: IND, fontFamily: FONT }}>{loadingProgress}%</span>
+                            </div>
+                        </div>
+                        <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px', fontFamily: FONT }}>Analyzing Your Resume</h2>
+                        <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 24px' }}>{loadingStep || 'Processing...'}</p>
+                        <div style={{ width: '100%', background: '#e0e7ff', borderRadius: '99px', height: '8px', overflow: 'hidden' }}>
+                            <div style={{ background: `linear-gradient(to right,${IND},${VIO})`, height: '8px', borderRadius: '99px', width: `${loadingProgress}%`, transition: 'width 0.7s ease-out' }} />
+                        </div>
+                        <div style={{ marginTop: '32px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px' }}>
+                            {[{ label: 'Extract Text', pct: 25 }, { label: 'Skill Scan', pct: 50 }, { label: 'Career Match', pct: 70 }, { label: 'Gap Analysis', pct: 85 }].map((step, i) => (
+                                <div key={i} style={{ textAlign: 'center' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', margin: '0 auto 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, background: loadingProgress >= step.pct ? `linear-gradient(135deg,${IND},${VIO})` : '#e0e7ff', color: loadingProgress >= step.pct ? '#fff' : '#94a3b8', transition: 'all 0.3s' }}>{loadingProgress >= step.pct ? '✓' : i + 1}</div>
+                                    <span style={{ fontSize: '10px', fontWeight: 600, color: loadingProgress >= step.pct ? IND : '#94a3b8' }}>{step.label}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    </div>
+                )}
+
+                {/* ════════════════════════════════════════════════
+                    RESULTS — Step-by-Step Sections
+                   ════════════════════════════════════════════════ */}
+                {result && !isLoading && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                        {/* ─── File Summary Bar ─── */}
+                        <div style={{ background: '#fff', borderRadius: '16px', padding: '14px 18px', border: '1px solid #e0e7ff', boxShadow: '0 2px 12px rgba(79,70,229,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <span className="material-symbols-outlined" style={{ color: '#059669' }}>task_alt</span>
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', margin: 0, fontFamily: FONT }}>Analysis Complete ✅</p>
+                                    <p style={{ fontSize: '11px', color: '#94a3b8', margin: 0 }}>{file ? file.name : 'Pasted text'} • {userSkills.length} skills found • {topPredictions.length > 0 ? topPredictions.length : 1} roles predicted</p>
+                                </div>
+                            </div>
+                            <button onClick={handleReset} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #e0e7ff', background: '#fff', color: '#4f46e5', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, display: 'flex', alignItems: 'center', gap: '6px' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#eef2ff'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
                             >
-                                <span className="tab-number">2</span>
-                                <span className="tab-label">Extract Skills</span>
-                            </button>
-                            <button
-                                className={`tab-btn ${activeTab === 'step3' ? 'active' : ''}`}
-                                disabled={!prediction}
-                                onClick={() => prediction && goToStep('step3')}
-                            >
-                                <span className="tab-number">3</span>
-                                <span className="tab-label">Career Prediction</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>restart_alt</span>
+                                New Analysis
                             </button>
                         </div>
 
-                        {/* Step 1: Upload Resume */}
-                        <div className={`tab-content ${activeTab === 'step1' ? 'active' : ''}`} id="step1">
-                            <div className="analyzer-card">
-                                <h2>Step 1: Upload Your Resume</h2>
-                                <p>Upload a PDF or TXT file containing your resume. The system will extract skills and analyze your career fit.</p>
+                        {/* ═══════ STEP 2 — NLP Extracted Skills ═══════ */}
+                        <div style={{ transition: 'all 0.7s', opacity: sectionVisible('skills') ? 1 : 0, transform: sectionVisible('skills') ? 'none' : 'translateY(24px)' }}>
+                            <StepBadge number={2} icon="psychology" label="Skill Analysis" />
+                            <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e0e7ff', boxShadow: '0 2px 16px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                                <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span className="material-symbols-outlined" style={{ color: IND }}>neurology</span>
+                                        <h3 style={{ fontWeight: 700, color: '#0f172a', margin: 0, fontSize: '14px', fontFamily: FONT }}>Skills Extracted from Your Resume</h3>
+                                    </div>
+                                    <span style={{ padding: '4px 12px', borderRadius: '99px', background: '#eef2ff', color: IND, fontSize: '11px', fontWeight: 700 }}>{userSkills.length} skills found</span>
+                                </div>
+                                <div style={{ padding: '20px 24px' }}>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>Our System analyzed your resume and identified these technical &amp; professional skills:</p>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                        {userSkills.map((s, i) => (
+                                            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '10px', fontSize: '12px', fontWeight: 600, background: 'linear-gradient(135deg,#f8faff,#eef2ff)', color: '#334155', border: '1px solid #c7d2fe' }}>
+                                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: IND, flexShrink: 0 }} />
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                <div className="upload-area">
-                                    <label htmlFor="resumeFile" className="upload-box large">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="17 8 12 3 7 8"></polyline>
-                                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                                        </svg>
-                                        <h3>Drop your resume here</h3>
-                                        <p>or click to browse (PDF or TXT, max 5MB)</p>
-                                    </label>
-                                    <input
-                                        type="file"
-                                        id="resumeFile"
-                                        ref={fileInputRef}
-                                        style={{ display: 'none' }}
-                                        accept=".pdf,.txt"
-                                        onChange={handleFileUpload}
-                                    />
+                        <StepConnector />
+
+                        {/* ═══════ STEP 3 — Top 3 Career Predictions ═══════ */}
+                        <div style={{ transition: 'all 0.7s', opacity: sectionVisible('predictions') ? 1 : 0, transform: sectionVisible('predictions') ? 'none' : 'translateY(24px)' }}>
+                            <StepBadge number={3} icon="trending_up" label="Top Career Predictions" />
+
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)', gap: '14px' }}>
+                                {(() => {
+                                    const preds = topPredictions.length > 0 ? topPredictions : [{ role: prediction.predicted_role, confidence: prediction.confidence || 0.5, rank: 1 }];
+                                    // Use combined_score for display % (matches re-ranking order so Rank #1 = highest %).
+                                    // Fall back to confidence if combined_score not present.
+                                    const getScore = (p) => p.combined_score != null ? p.combined_score : (p.confidence || 0);
+                                    const totalScore = preds.reduce((s, p) => s + getScore(p), 0);
+                                    return preds.map((pred, i) => {
+                                        const isSelected = i === selectedPredictionIdx && activeTab === 'predicted';
+                                        const confPct = totalScore > 0 ? Math.round((getScore(pred) / totalScore) * 100) : Math.round((pred.confidence || 0) * 100);
+                                        const confColor = confPct >= 55 ? '#059669' : confPct >= 30 ? IND : '#d97706';
+
+                                        return (
+                                            <button key={i} onClick={async () => {
+                                                setSelectedPredictionIdx(i); setActiveTab('predicted'); setRoleSearchResult(null);
+                                                const roleName = pred.role;
+                                                if (roleName && !perPredCourses[roleName] && pred.skill_gap?.missing_skills?.length > 0) {
+                                                    setIsFetchingCourses(true);
+                                                    try {
+                                                        const courseRes = await api.post('/api/analysis/recommend', { missing_skills: pred.skill_gap.missing_skills, target_role: roleName });
+                                                        setPerPredCourses(prev => ({ ...prev, [roleName]: courseRes.data }));
+                                                    } catch (err) { console.error('Course fetch error:', err); }
+                                                    finally { setIsFetchingCourses(false); }
+                                                }
+                                            }}
+                                                style={{
+                                                    textAlign: 'left', padding: '18px', borderRadius: '16px', cursor: 'pointer', fontFamily: FONT,
+                                                    border: isSelected ? `2px solid ${IND}` : '2px solid #e0e7ff',
+                                                    background: isSelected ? 'linear-gradient(135deg,#eef2ff,#f5f3ff)' : '#fff',
+                                                    boxShadow: isSelected ? `0 4px 20px rgba(79,70,229,0.2)` : '0 2px 8px rgba(0,0,0,0.04)',
+                                                    transition: 'all 0.25s',
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                                                    <span style={{ fontSize: '24px' }}>{medals[i] || '🏅'}</span>
+                                                    {isSelected && <span style={{ padding: '2px 8px', borderRadius: '99px', background: IND, color: '#fff', fontSize: '10px', fontWeight: 700 }}>SELECTED</span>}
+                                                </div>
+                                                <h4 style={{ fontWeight: 800, fontSize: '15px', color: isSelected ? IND : '#0f172a', margin: '0 0 3px', fontFamily: FONT }}>{pred.role}</h4>
+                                                <p style={{ fontSize: '11px', color: '#94a3b8', margin: '0 0 10px' }}>Rank #{pred.rank} prediction</p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{ flex: 1, height: '5px', borderRadius: '99px', background: '#e0e7ff', overflow: 'hidden' }}>
+                                                        <div style={{ height: '100%', borderRadius: '99px', background: `linear-gradient(to right,${IND},${VIO})`, width: `${confPct}%` }} />
+                                                    </div>
+                                                    <span style={{ fontSize: '11px', fontWeight: 700, color: confColor }}>{confPct}%</span>
+                                                </div>
+                                                {!isSelected && <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '8px' }}>Click to see fit analysis →</p>}
+                                            </button>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </div>
+                        <StepConnector />
+
+                        {/* ═══════ STEP 3.5 — Why These Predictions? (Simple Text) ═══════ */}
+                        {topPredictions.length > 0 && (
+                            <div style={{ transition: 'all 0.7s', opacity: sectionVisible('predictions') ? 1 : 0, transform: sectionVisible('predictions') ? 'none' : 'translateY(24px)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', boxShadow: '0 4px 12px rgba(124,58,237,0.3)', flexShrink: 0 }}>💡</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#7c3aed' }}>psychology_alt</span>
+                                        <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: FONT }}>Why These Predictions?</h2>
+                                    </div>
+                                    <span style={{ padding: '3px 10px', borderRadius: '99px', background: '#f5f3ff', color: '#7c3aed', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>Explainable Recommendation</span>
                                 </div>
 
-                                {uploading && (
-                                    <div className="upload-status">
-                                        <div className="spinner"></div>
-                                        <p>Processing your resume...</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    {(() => {
+                                        const getScore = (p) => p.combined_score != null ? p.combined_score : (p.confidence || 0);
+                                        const totalScore = topPredictions.reduce((s, p) => s + getScore(p), 0);
+                                        return topPredictions.map((pred, i) => {
+                                            const normPct = totalScore > 0 ? Math.round((getScore(pred) / totalScore) * 100) : Math.round((pred.confidence || 0) * 100);
+                                            const bgPalette = ['#fffbeb', '#f8fafc', '#fff7ed'];
+                                            const borderPalette = ['#fcd34d', '#e0e7ff', '#fb923c'];
+                                            return (
+                                                <div key={i} style={{ padding: '18px', borderRadius: '14px', border: `1px solid ${borderPalette[i]}`, background: bgPalette[i], boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                                        <span style={{ fontSize: '20px' }}>{medals[i]}</span>
+                                                        <h3 style={{ fontWeight: 700, color: '#0f172a', margin: 0, fontSize: '14px', fontFamily: FONT }}>{pred.role}</h3>
+                                                        <span style={{ marginLeft: 'auto', padding: '2px 8px', borderRadius: '99px', background: '#eef2ff', color: IND, fontSize: '10px', fontWeight: 700 }}>{normPct}% match</span>
+                                                    </div>
+                                                    <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, margin: 0 }}>{pred.why_recommended || 'This role aligns with your skill profile based on ML analysis.'}</p>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
+                        <StepConnector />
+
+                        {/* ═══════ STEP 4 — Fit Analysis (with role search) ═══════ */}
+                        <div style={{ transition: 'all 0.7s', opacity: sectionVisible('fit') ? 1 : 0, transform: sectionVisible('fit') ? 'none' : 'translateY(24px)' }}>
+                            <StepBadge number={4} icon="analytics" label="Fit Analysis" />
+
+                            {/* ── Tab Toggle ── */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', gap: '4px', background: '#f1f5f9', borderRadius: '12px', padding: '4px' }}>
+                                    {[{ id: 'predicted', icon: '🤖', label: 'ML Predicted' }, { id: 'custom', icon: '🔍', label: 'Search a Role' }].map(tab => (
+                                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                                            padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: FONT, border: 'none', transition: 'all 0.2s',
+                                            background: activeTab === tab.id ? '#fff' : 'transparent',
+                                            color: activeTab === tab.id ? '#0f172a' : '#64748b',
+                                            boxShadow: activeTab === tab.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                                        }}>{tab.icon} {tab.label}</button>
+                                    ))}
+                                </div>
+
+                                {activeTab === 'custom' && (
+                                    <div style={{ position: 'relative', flex: 1, minWidth: isMobile ? '100%' : '300px' }}>
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <span className="material-symbols-outlined" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '18px' }}>search</span>
+                                                <input ref={roleInputRef} type="text" value={roleQuery}
+                                                    onChange={e => { setRoleQuery(e.target.value); setShowRoleSuggestions(e.target.value.length >= 2); }}
+                                                    onKeyDown={e => { if (e.key === 'Enter') handleRoleSearch(); }}
+                                                    onFocus={() => roleQuery.length >= 2 && setShowRoleSuggestions(true)}
+                                                    onBlur={() => setTimeout(() => setShowRoleSuggestions(false), 200)}
+                                                    placeholder='Try "Full Stack Developer", "Data Scientist"...'
+                                                    style={{ width: '100%', paddingLeft: '38px', paddingRight: '14px', paddingTop: '10px', paddingBottom: '10px', borderRadius: '12px', border: '2px solid #e0e7ff', fontSize: '13px', fontFamily: FONT, outline: 'none', boxSizing: 'border-box' }}
+                                                    onFocusCapture={e => e.target.style.borderColor = IND}
+                                                    onBlurCapture={e => e.target.style.borderColor = '#e0e7ff'}
+                                                />
+                                                {showRoleSuggestions && filteredRoles.length > 0 && (
+                                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px', background: '#fff', borderRadius: '12px', border: '1px solid #e0e7ff', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 20, overflow: 'hidden' }}>
+                                                        {filteredRoles.map((role, i) => (
+                                                            <button key={i} style={{ width: '100%', textAlign: 'left', padding: '10px 16px', fontSize: '13px', cursor: 'pointer', color: '#334155', fontFamily: FONT, background: 'none', border: 'none', borderBottom: i < filteredRoles.length - 1 ? '1px solid #f0f0f8' : 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                                                onMouseDown={e => { e.preventDefault(); setRoleQuery(role); setShowRoleSuggestions(false); handleRoleSearch(role); }}
+                                                                onMouseEnter={e => e.currentTarget.style.background = '#eef2ff'}
+                                                                onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                                            >
+                                                                <span className="material-symbols-outlined" style={{ color: IND, fontSize: '16px' }}>work</span>
+                                                                {role}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button onClick={() => handleRoleSearch()} disabled={!roleQuery.trim() || isSearchingRole} style={{
+                                                padding: '10px 18px', borderRadius: '12px', border: 'none', cursor: roleQuery.trim() && !isSearchingRole ? 'pointer' : 'not-allowed',
+                                                background: roleQuery.trim() ? `linear-gradient(135deg,${IND},${VIO})` : '#e0e7ff',
+                                                color: roleQuery.trim() ? '#fff' : '#94a3b8', fontSize: '13px', fontWeight: 700, fontFamily: FONT, display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap',
+                                            }}>
+                                                {isSearchingRole ? <span style={{ width: '14px', height: '14px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} /> : <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>search</span>}
+                                                Analyze Fit
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
+                            </div>
 
-                                {error && (
-                                    <div className="error-msg" style={{ marginTop: '1rem' }}>{error}</div>
-                                )}
+                            {isCustomView && roleSearchResult.did_you_mean && (
+                                <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: '#fffbeb', border: '1px solid #fcd34d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span className="material-symbols-outlined" style={{ color: '#d97706' }}>spellcheck</span>
+                                    <p style={{ fontSize: '13px', color: '#92400e', margin: 0 }}>Showing results for <strong>&#34;{roleSearchResult.matched_role}&#34;</strong> <span style={{ color: '#d97706' }}>(you typed: &#34;{roleSearchResult.query}&#34;)</span></p>
+                                </div>
+                            )}
 
-                                {uploadSuccess && (
-                                    <div className="upload-success">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                        <p>Resume uploaded successfully! Click Next to continue.</p>
+                            {/* ── Role header ── */}
+                            <div style={{ background: `linear-gradient(135deg,${IND},${VIO})`, borderRadius: '16px', padding: '16px 20px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <span className="material-symbols-outlined" style={{ color: '#fff', fontSize: '22px' }}>work</span>
                                     </div>
-                                )}
+                                    <div>
+                                        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, margin: 0 }}>{isCustomView ? 'Custom Role Analysis' : `ML Prediction #${selectedPredictionIdx + 1}`}</p>
+                                        <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#fff', margin: 0, fontFamily: FONT }}>{displayRole}</h3>
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <p style={{ fontSize: '32px', fontWeight: 900, color: '#fff', margin: 0, fontFamily: FONT }}>{fitScore}%</p>
+                                    <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', margin: 0 }}>{fitLabel}</p>
+                                </div>
+                            </div>
 
-                                <div className="tab-actions">
-                                    {uploadSuccess && (
-                                        <button className="btn btn-primary" onClick={() => goToStep('step2')}>
-                                            Next Step
-                                        </button>
+                            {/* ── Fit Chart + Skills Comparison ── */}
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '160px 1fr', gap: '16px' }}>
+                                {/* Left: Doughnut + Summary */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ background: '#fff', borderRadius: '16px', padding: '20px', border: '1px solid #e0e7ff', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', textAlign: 'center' }}>
+                                        <div style={{ width: '120px', height: '120px', margin: '0 auto 12px', position: 'relative' }}>
+                                            <Doughnut data={chartData} options={chartOptions} />
+                                            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                                <span style={{ fontSize: '26px', fontWeight: 900, color: '#0f172a', fontFamily: FONT }}>{fitScore}%</span>
+                                                <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 700, letterSpacing: '0.5px' }}>FIT SCORE</span>
+                                            </div>
+                                        </div>
+                                        <span style={{ display: 'inline-block', padding: '4px 14px', borderRadius: '99px', fontSize: '11px', fontWeight: 700, background: fitColor + '18', color: fitColor }}>{fitLabel}</span>
+                                    </div>
+
+                                    <div style={{ background: '#0f172a', borderRadius: '16px', padding: '18px', color: '#fff', position: 'relative', overflow: 'hidden' }}>
+                                        <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', background: '#4f46e5', borderRadius: '50%', filter: 'blur(40px)', opacity: 0.25 }} />
+                                        <h4 style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px' }}>Summary</h4>
+                                        {[['Target Role', displayRole, '#fff'], ['Skills Matched', displaySkillGap.matched_count || 0, '#34d399'], ['Skills Missing', displaySkillGap.missing_count || 0, '#f87171'], ['Gap', `${displaySkillGap.gap_percentage?.toFixed(0) || 0}%`, '#fbbf24']].map(([label, val, col]) => (
+                                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
+                                                <span style={{ color: '#64748b' }}>{label}</span>
+                                                <span style={{ fontWeight: 700, color: col, fontSize: '11px', maxWidth: '110px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'right' }}>{val}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Right: Skills Comparison */}
+                                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e0e7ff', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f8' }}>
+                                        <h3 style={{ fontWeight: 700, color: '#0f172a', margin: 0, fontSize: '14px', fontFamily: FONT }}>Skills Comparison</h3>
+                                        <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0' }}>Your skills vs what <strong style={{ color: '#475569' }}>{displayRole}</strong> requires</p>
+                                    </div>
+                                    <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+                                        <div>
+                                            <h4 style={{ fontSize: '11px', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span>
+                                                Matched Skills ({displaySkillGap.matched_count || 0})
+                                            </h4>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {(displaySkillGap.matched_skills || []).length > 0
+                                                    ? (displaySkillGap.matched_skills || []).map((s, i) => <SkillTag key={i} name={s} type="matched" />)
+                                                    : <p style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No matched skills found</p>}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h4 style={{ fontSize: '11px', fontWeight: 700, color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>cancel</span>
+                                                Missing Skills ({displaySkillGap.missing_count || 0})
+                                            </h4>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {(displaySkillGap.missing_skills || []).length > 0
+                                                    ? (displaySkillGap.missing_skills || []).map((s, i) => <SkillTag key={i} name={s} type="missing" />)
+                                                    : <p style={{ fontSize: '13px', color: '#94a3b8', fontStyle: 'italic' }}>No gaps — great job! 🎉</p>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {displaySkillGap.recommendation && (
+                                        <div style={{ padding: '0 20px 20px' }}>
+                                            <div style={{ padding: '14px', borderRadius: '12px', background: '#eef2ff', border: '1px solid #c7d2fe', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                <span className="material-symbols-outlined" style={{ color: IND, fontSize: '18px', marginTop: '1px' }}>lightbulb</span>
+                                                <p style={{ fontSize: '13px', color: '#3730a3', lineHeight: 1.6, margin: 0 }}>{displaySkillGap.recommendation}</p>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Step 2: Extract Skills */}
-                        <div className={`tab-content ${activeTab === 'step2' ? 'active' : ''}`} id="step2">
-                            <div className="analyzer-card">
-                                <h2>Step 2: Extracted Skills</h2>
-                                <p>These are the key skills detected from your resume. You can edit them if needed.</p>
+                        <StepConnector />
 
-                                <div className="skills-section">
-                                    <h4>Identified Skills</h4>
-                                    <div className="skills-tags">
-                                        {extractedSkills.length > 0 ? (
-                                            extractedSkills.map((skill, index) => (
-                                                <span key={index} className="skill-tag">{skill}</span>
-                                            ))
-                                        ) : (
-                                            <p className="loading-msg">No skills found</p>
+                        {/* ═══════ STEP 5 — Course Recommendations ═══════ */}
+                        <div style={{ transition: 'all 0.7s', opacity: sectionVisible('courses') ? 1 : 0, transform: sectionVisible('courses') ? 'none' : 'translateY(24px)' }}>
+                            <StepBadge number={5} icon="school" label="Recommended Courses" />
+
+                            {learningPath.length > 0 ? (
+                                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e0e7ff', boxShadow: '0 2px 16px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f8', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span className="material-symbols-outlined" style={{ color: IND }}>menu_book</span>
+                                            <h3 style={{ fontWeight: 700, color: '#0f172a', margin: 0, fontSize: '14px', fontFamily: FONT }}>Learning Path for {displayRole}</h3>
+                                        </div>
+                                        {(displayCourseRecs.total_learning_hours || displayCourseRecs.estimated_weeks) && (
+                                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                                                {displayCourseRecs.total_learning_hours && `~${displayCourseRecs.total_learning_hours}h total`}
+                                                {displayCourseRecs.estimated_weeks && ` • ${displayCourseRecs.estimated_weeks} weeks`}
+                                            </span>
                                         )}
                                     </div>
-                                </div>
-
-                                <div className="resume-preview-section">
-                                    <h4>Resume Text Preview</h4>
-                                    <div className="preview-box">
-                                        {resumeText || 'Resume text will appear here...'}
+                                    <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px' }}>
+                                        {learningPath.slice(0, 8).map((item, i) => (
+                                            <a key={i} href={item.url} target="_blank" rel="noopener noreferrer" style={{
+                                                display: 'block', padding: '14px', borderRadius: '12px', border: '1px solid #e0e7ff',
+                                                textDecoration: 'none', transition: 'all 0.2s',
+                                            }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = IND; e.currentTarget.style.background = '#fafbff'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e7ff'; e.currentTarget.style.background = 'transparent'; }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{ width: '22px', height: '22px', borderRadius: '6px', background: '#eef2ff', color: IND, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                                                        <span style={{ padding: '2px 7px', borderRadius: '6px', background: '#eef2ff', color: IND, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>{item.level || 'Course'}</span>
+                                                    </div>
+                                                    <span className="material-symbols-outlined" style={{ color: '#c7d2fe', fontSize: '16px' }}>open_in_new</span>
+                                                </div>
+                                                <h4 style={{ fontWeight: 700, color: '#0f172a', fontSize: '13px', margin: '0 0 4px', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{item.course}</h4>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94a3b8' }}>
+                                                    <span>{item.platform}</span>
+                                                    {item.duration_hours && <span>• {item.duration_hours}h</span>}
+                                                </div>
+                                                <p style={{ fontSize: '10px', color: '#94a3b8', margin: '6px 0 0' }}>For: <span style={{ fontWeight: 600, color: '#e11d48' }}>{item.skill}</span> <span style={{ color: '#cbd5e1' }}>(missing skill)</span></p>
+                                            </a>
+                                        ))}
                                     </div>
-                                </div>
 
-                                <div className="tab-actions">
-                                    <button className="btn btn-secondary" onClick={() => goToStep('step1')}>
-                                        Back
-                                    </button>
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={handlePredictRole}
-                                        disabled={predicting}
-                                    >
-                                        {predicting ? 'Analyzing...' : 'Analyze & Predict'}
-                                    </button>
+                                    {displayCourseRecs.total_courses > 0 && (
+                                        <div style={{ padding: '0 20px 20px' }}>
+                                            <div style={{ padding: '16px', borderRadius: '14px', background: 'linear-gradient(135deg,#0f172a,#1e293b)', color: '#fff', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span className="material-symbols-outlined" style={{ color: '#818cf8', fontSize: '22px' }}>auto_awesome</span>
+                                                <div>
+                                                    <p style={{ fontSize: '13px', fontWeight: 700, margin: 0, fontFamily: FONT }}>Complete this path to become a strong {displayRole}</p>
+                                                    <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0' }}>{displayCourseRecs.total_courses} courses • {displayCourseRecs.total_learning_hours || '?'}h of learning</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            ) : (
+                                <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e0e7ff', boxShadow: '0 2px 12px rgba(0,0,0,0.05)', padding: '48px 24px', textAlign: 'center' }}>
+                                    <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#34d399', display: 'block', marginBottom: '12px' }}>celebration</span>
+                                    <h3 style={{ fontWeight: 800, color: '#0f172a', fontSize: '18px', margin: '0 0 8px', fontFamily: FONT }}>No Courses Needed!</h3>
+                                    <p style={{ fontSize: '14px', color: '#64748b', margin: 0 }}>Your skills already cover the requirements for {displayRole}. Amazing work! 🎉</p>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Step 3: Career Prediction */}
-                        <div className={`tab-content ${activeTab === 'step3' ? 'active' : ''}`} id="step3">
-                            <div className="analyzer-card">
-                                <h2>Step 3: Career Prediction Analysis</h2>
-
-                                {prediction && (
-                                    <>
-                                        <div className="model-comparison">
-                                            <h3>AI Model Predictions</h3>
-
-                                            {/* Compact Model Cards */}
-                                            <div style={{
-                                                display: 'flex',
-                                                gap: '0.75rem',
-                                                marginTop: '1rem',
-                                                flexWrap: 'wrap'
-                                            }}>
-                                                <div style={{
-                                                    flex: '1 1 120px',
-                                                    background: '#ffffff',
-                                                    border: '1px solid #e5e7eb',
-                                                    borderRadius: '8px',
-                                                    padding: '0.75rem',
-                                                    textAlign: 'center',
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                                }}>
-                                                    <p style={{
-                                                        margin: '0 0 0.25rem',
-                                                        fontSize: '0.65rem',
-                                                        color: '#6b7280',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px'
-                                                    }}>SVM</p>
-                                                    <p style={{
-                                                        margin: 0,
-                                                        fontWeight: '600',
-                                                        fontSize: '0.85rem',
-                                                        color: '#1f2937'
-                                                    }}>{prediction.svm_role}</p>
-                                                </div>
-                                                <div style={{
-                                                    flex: '1 1 120px',
-                                                    background: '#ffffff',
-                                                    border: '1px solid #e5e7eb',
-                                                    borderRadius: '8px',
-                                                    padding: '0.75rem',
-                                                    textAlign: 'center',
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                                }}>
-                                                    <p style={{
-                                                        margin: '0 0 0.25rem',
-                                                        fontSize: '0.65rem',
-                                                        color: '#6b7280',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px'
-                                                    }}>Random Forest</p>
-                                                    <p style={{
-                                                        margin: 0,
-                                                        fontWeight: '600',
-                                                        fontSize: '0.85rem',
-                                                        color: '#1f2937'
-                                                    }}>{prediction.rf_role}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="top-roles-section" style={{ marginTop: '1.5rem' }}>
-                                            <h3>Suitable Roles</h3>
-                                            <div style={{ marginTop: '1rem' }}>
-                                                {prediction.top_roles?.slice(0, 3).map((item, index) => (
-                                                    <div key={index} style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '0.75rem',
-                                                        padding: '0.875rem',
-                                                        background: index === 0 ? '#eef2ff' : '#ffffff',
-                                                        border: index === 0 ? '2px solid #6366f1' : '1px solid #e5e7eb',
-                                                        borderRadius: '10px',
-                                                        marginBottom: '0.75rem'
-                                                    }}>
-                                                        <div style={{
-                                                            width: '36px',
-                                                            height: '36px',
-                                                            borderRadius: '50%',
-                                                            background: index === 0 ? '#6366f1' : index === 1 ? '#8b5cf6' : '#d1d5db',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            fontSize: '1.1rem',
-                                                            flexShrink: 0
-                                                        }}>
-                                                            {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                                                        </div>
-                                                        <div style={{ flex: 1 }}>
-                                                            <p style={{
-                                                                margin: 0,
-                                                                fontSize: '1rem',
-                                                                fontWeight: index === 0 ? '700' : '600',
-                                                                color: '#1f2937'
-                                                            }}>{item.role}</p>
-                                                            {showPercentages[index] && (
-                                                                <p style={{
-                                                                    margin: '0.25rem 0 0',
-                                                                    fontSize: '0.8rem',
-                                                                    color: '#6366f1',
-                                                                    fontWeight: '500'
-                                                                }}>
-                                                                    {Math.round(item.confidence * 100)}% match
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => togglePercentage(index)}
-                                                            style={{
-                                                                padding: '0.35rem 0.6rem',
-                                                                fontSize: '0.7rem',
-                                                                background: showPercentages[index] ? '#6366f1' : '#f3f4f6',
-                                                                color: showPercentages[index] ? '#ffffff' : '#6b7280',
-                                                                border: 'none',
-                                                                borderRadius: '4px',
-                                                                cursor: 'pointer',
-                                                                fontWeight: '500'
-                                                            }}
-                                                        >
-                                                            {showPercentages[index] ? 'Hide %' : 'Show %'}
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Job Fit Analyzer */}
-                                        <div style={{
-                                            marginTop: '1.5rem',
-                                            padding: '1.25rem',
-                                            background: '#f9fafb',
-                                            borderRadius: '12px',
-                                            border: '1px solid #e5e7eb'
-                                        }}>
-                                            <h3 style={{
-                                                margin: '0 0 0.75rem',
-                                                fontSize: '1rem',
-                                                color: '#1f2937',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '0.5rem'
-                                            }}>
-                                                🎯 Analyze Job Fit
-                                            </h3>
-                                            <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#6b7280' }}>
-                                                Enter a job title to see if you're a good fit based on your skills
-                                            </p>
-                                            <div style={{
-                                                display: 'flex',
-                                                gap: '0.75rem',
-                                                flexWrap: 'wrap'
-                                            }}>
-                                                <input
-                                                    type="text"
-                                                    value={jobInput}
-                                                    onChange={(e) => setJobInput(e.target.value)}
-                                                    placeholder="e.g., Data Scientist, Frontend Developer..."
-                                                    style={{
-                                                        flex: '1 1 200px',
-                                                        minWidth: '0',
-                                                        padding: '0.75rem 1rem',
-                                                        fontSize: '0.9rem',
-                                                        border: '1px solid #d1d5db',
-                                                        borderRadius: '8px',
-                                                        outline: 'none'
-                                                    }}
-                                                    onKeyPress={(e) => e.key === 'Enter' && analyzeJobFit()}
-                                                />
-                                                <button
-                                                    onClick={analyzeJobFit}
-                                                    disabled={analyzingFit || !jobInput.trim()}
-                                                    style={{
-                                                        flex: '0 0 auto',
-                                                        padding: '0.75rem 1.25rem',
-                                                        fontSize: '0.9rem',
-                                                        fontWeight: '600',
-                                                        background: '#6366f1',
-                                                        color: '#ffffff',
-                                                        border: 'none',
-                                                        borderRadius: '8px',
-                                                        cursor: analyzingFit || !jobInput.trim() ? 'not-allowed' : 'pointer',
-                                                        opacity: analyzingFit || !jobInput.trim() ? 0.6 : 1,
-                                                        whiteSpace: 'nowrap'
-                                                    }}
-                                                >
-                                                    {analyzingFit ? 'Analyzing...' : 'Analyze Fit'}
-                                                </button>
-                                            </div>
-
-                                            {/* Job Fit Results */}
-                                            {jobFitResult && (
-                                                <div style={{
-                                                    marginTop: '1rem',
-                                                    padding: '1rem',
-                                                    background: '#ffffff',
-                                                    borderRadius: '10px',
-                                                    border: `2px solid ${jobFitResult.fitColor}`
-                                                }}>
-                                                    {/* Corrected Job Title */}
-                                                    <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #e5e7eb' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                                            <span style={{ fontSize: '1.25rem' }}>💼</span>
-                                                            <p style={{
-                                                                margin: 0,
-                                                                fontSize: '1.1rem',
-                                                                fontWeight: '700',
-                                                                color: '#1f2937'
-                                                            }}>{jobFitResult.correctedJobTitle}</p>
-                                                            {jobFitResult.job.toLowerCase() !== jobFitResult.matchedJob && (
-                                                                <span style={{
-                                                                    padding: '0.15rem 0.4rem',
-                                                                    fontSize: '0.65rem',
-                                                                    background: '#fef3c7',
-                                                                    color: '#92400e',
-                                                                    borderRadius: '4px',
-                                                                    fontWeight: '500'
-                                                                }}>Corrected</span>
-                                                            )}
-                                                        </div>
-                                                        <p style={{
-                                                            margin: 0,
-                                                            fontSize: '0.85rem',
-                                                            color: '#6b7280',
-                                                            lineHeight: '1.5'
-                                                        }}>{jobFitResult.jobDescription}</p>
-                                                    </div>
-
-                                                    {/* Fit Level and Percentage */}
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        marginBottom: '1rem',
-                                                        flexWrap: 'wrap',
-                                                        gap: '1rem'
-                                                    }}>
-                                                        <div style={{ flex: '1 1 auto', minWidth: '120px' }}>
-                                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Fit Level</p>
-                                                            <p style={{
-                                                                margin: '0.25rem 0 0',
-                                                                fontSize: '1.25rem',
-                                                                fontWeight: '700',
-                                                                color: jobFitResult.fitColor
-                                                            }}>{jobFitResult.fitLevel}</p>
-                                                        </div>
-                                                        <div style={{
-                                                            width: '60px',
-                                                            height: '60px',
-                                                            borderRadius: '50%',
-                                                            background: `conic-gradient(${jobFitResult.fitColor} ${jobFitResult.fitPercentage}%, #e5e7eb ${jobFitResult.fitPercentage}%)`,
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            flexShrink: 0
-                                                        }}>
-                                                            <div style={{
-                                                                width: '48px',
-                                                                height: '48px',
-                                                                borderRadius: '50%',
-                                                                background: '#ffffff',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                fontSize: '0.85rem',
-                                                                fontWeight: '700',
-                                                                color: jobFitResult.fitColor
-                                                            }}>
-                                                                {jobFitResult.fitPercentage}%
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: '#374151' }}>
-                                                        {jobFitResult.fitMessage}
-                                                    </p>
-
-                                                    {jobFitResult.matchedSkills.length > 0 && (
-                                                        <div style={{ marginBottom: '0.75rem' }}>
-                                                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#10b981', fontWeight: '600' }}>
-                                                                ✓ Skills You Have ({jobFitResult.matchedSkills.length})
-                                                            </p>
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                                                {jobFitResult.matchedSkills.map((skill, i) => (
-                                                                    <span key={i} style={{
-                                                                        padding: '0.25rem 0.5rem',
-                                                                        fontSize: '0.75rem',
-                                                                        background: '#d1fae5',
-                                                                        color: '#065f46',
-                                                                        borderRadius: '4px'
-                                                                    }}>{skill}</span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {jobFitResult.missingSkills.length > 0 && (
-                                                        <div>
-                                                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: '#ef4444', fontWeight: '600' }}>
-                                                                ✗ Skills to Develop ({jobFitResult.missingSkills.length})
-                                                            </p>
-                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                                                {jobFitResult.missingSkills.map((skill, i) => (
-                                                                    <span key={i} style={{
-                                                                        padding: '0.25rem 0.5rem',
-                                                                        fontSize: '0.75rem',
-                                                                        background: '#fee2e2',
-                                                                        color: '#991b1b',
-                                                                        borderRadius: '4px'
-                                                                    }}>{skill}</span>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-
-                                <div className="tab-actions">
-                                    <button className="btn btn-secondary" onClick={() => goToStep('step2')}>
-                                        Back
-                                    </button>
-                                    <button className="btn btn-primary" onClick={generateReport}>
-                                        Download Report
-                                    </button>
-                                </div>
-                            </div>
+                        {/* Bottom CTA */}
+                        <div style={{ marginTop: '32px', textAlign: 'center' }}>
+                            <button onClick={handleReset} style={{
+                                padding: '14px 32px', borderRadius: '16px', background: `linear-gradient(135deg,${IND},${VIO})`,
+                                color: '#fff', fontSize: '15px', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: FONT,
+                                boxShadow: '0 4px 20px rgba(79,70,229,0.35)', display: 'inline-flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s',
+                            }}
+                                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 8px 30px rgba(79,70,229,0.45)'}
+                                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 20px rgba(79,70,229,0.35)'}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>restart_alt</span>
+                                Analyze Another Resume
+                            </button>
                         </div>
                     </div>
-                </div>
-            </main>
-
-            {/* Footer */}
-            <footer className="footer">
-                <div className="footer-container">
-                    <div className="footer-content">
-                        <div className="footer-main">
-                            <div className="footer-branding">
-                                <h4>Smart Career Advisor</h4>
-                                <p>AI-powered career guidance using machine learning and NLP</p>
-                            </div>
-                            <div className="footer-links-section">
-                                <h5>Quick Links</h5>
-                                <ul className="footer-links-list">
-                                    <li><Link to="/">Home</Link></li>
-                                    <li><Link to="/dashboard">Dashboard</Link></li>
-                                    <li><Link to="/resume-analyzer">Resume Analyzer</Link></li>
-                                    <li><Link to="/about">About Us</Link></li>
-                                </ul>
-                            </div>
-                            <div className="footer-links-section">
-                                <h5>Resources</h5>
-                                <ul className="footer-links-list">
-                                    <li><Link to="/about?tab=terms">Terms & Conditions</Link></li>
-                                    <li><a href="mailto:rathideviruku@gmail.com">Contact Us</a></li>
-                                    <li><Link to="/about">Privacy Policy</Link></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div className="footer-bottom">
-                            <p>&copy; 2024 Smart Career Advisor. All rights reserved.</p>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-        </>
+                )
+                }
+            </main >
+        </div >
     );
 }
 

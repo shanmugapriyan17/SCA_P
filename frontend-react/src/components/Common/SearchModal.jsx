@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 const SEARCH_SUGGESTIONS = [
     'Data Scientist',
     'Frontend Developer',
-    'Machine Learning',
+    'Career Advisor',
     'Backend Engineer',
     'DevOps Engineer',
     'Full Stack Developer'

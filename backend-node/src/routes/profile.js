@@ -114,4 +114,33 @@ router.post('/profile', requireAuth, async (req, res) => {
     }
 });
 
+// GET /api/profile/resume — get latest resume info for download
+router.get('/profile/resume', requireAuth, async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        // DB schema uses file_name column
+        const resume = await dbAsync.get(
+            'SELECT id, file_name as filename, uploaded_at as upload_date FROM resumes WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+            [userId]
+        );
+
+        if (!resume || !resume.filename) {
+            return res.json({ success: true, resume: null });
+        }
+
+        res.json({
+            success: true,
+            resume: {
+                id: resume.id,
+                filename: resume.filename,
+                upload_date: resume.upload_date,
+                download_url: `/uploads/resumes/${resume.filename}`
+            }
+        });
+    } catch (error) {
+        console.error('Get resume error:', error);
+        res.status(500).json({ error: 'Failed to get resume' });
+    }
+});
+
 module.exports = router;

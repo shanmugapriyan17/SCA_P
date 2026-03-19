@@ -1,478 +1,87 @@
 const express = require('express');
 const router = express.Router();
+const { execFile } = require('child_process');
+const path = require('path');
 
-// All 97 career roles that the model can predict
+// Path to Python prediction script
+const PREDICT_SCRIPT = path.join(__dirname, '..', '..', 'scripts', 'predict_service.py');
+
+// All 97 career roles
 const CAREER_ROLES = [
-    // AI/ML/Data
     'AI/ML Engineer', 'Data Scientist', 'Data Analyst', 'Data Engineer',
     'Machine Learning Engineer', 'NLP Engineer', 'Computer Vision Engineer',
     'AI Research Scientist', 'Prompt Engineer', 'LLM Engineer',
     'Generative AI Engineer', 'AI Product Manager', 'MLOps Engineer',
     'Big Data Engineer', 'Business Intelligence Developer',
-
-    // Software Development
     'Full Stack Developer', 'Frontend Developer', 'Backend Developer',
     'Software Engineer', 'Senior Software Engineer', 'Junior Developer',
     'Web Developer', 'API Developer', 'Tech Lead', 'Software Architect',
-
-    // Mobile
     'Mobile Developer', 'iOS Developer', 'Android Developer',
     'React Native Developer', 'Flutter Developer',
-
-    // DevOps/Cloud
     'DevOps Engineer', 'Cloud Engineer', 'Cloud Architect',
     'Site Reliability Engineer', 'Platform Engineer',
     'Systems Administrator', 'Network Engineer',
     'Infrastructure Engineer', 'Release Engineer',
-
-    // Security
     'Security Engineer', 'Cybersecurity Analyst',
     'Application Security Engineer', 'Information Security Analyst',
     'Penetration Tester',
-
-    // Database
     'Database Administrator', 'Database Developer', 'Database Architect',
-
-    // QA
     'QA Engineer', 'QA Lead', 'SDET', 'Manual Tester', 'Performance Engineer',
-
-    // Design
     'UI/UX Designer', 'Product Designer', 'Graphic Designer',
     'UX Researcher', 'Visual Designer', 'Interaction Designer',
-
-    // Product & Project
     'Product Manager', 'Technical Product Manager', 'Product Owner',
     'Project Manager', 'Program Manager', 'Scrum Master', 'Agile Coach',
-
-    // Business
     'Business Analyst', 'Business Intelligence Analyst',
     'Systems Analyst', 'Operations Analyst',
-
-    // Technical Writing & Support
     'Technical Writer', 'Technical Support Engineer',
     'Customer Success Engineer', 'Support Engineer',
     'Help Desk Technician', 'Desktop Support Engineer',
-
-    // Architecture
     'Solutions Architect', 'Enterprise Architect',
     'Data Architect', 'Integration Architect',
-
-    // Emerging Tech
     'Blockchain Developer', 'AR/VR Developer', 'Game Developer',
     'IoT Developer', 'Robotics Engineer',
-
-    // Leadership
     'Engineering Manager', 'Director of Engineering',
     'VP of Engineering', 'CTO', 'IT Manager',
-
-    // Sales & Consulting
     'Sales Engineer', 'Solutions Engineer',
     'IT Consultant', 'Technology Consultant',
-
-    // Marketing Tech
     'Growth Engineer', 'Marketing Technologist', 'SEO Specialist',
-
-    // IT
     'IT Administrator'
 ];
 
-// Comprehensive skill to role mapping
-const SKILL_ROLE_MAPPING = {
-    // Prompt Engineer / LLM / Generative AI
-    'prompt engineering': 'Prompt Engineer',
-    'prompt design': 'Prompt Engineer',
-    'chatgpt': 'Prompt Engineer',
-    'gpt': 'Prompt Engineer',
-    'gpt-4': 'Prompt Engineer',
-    'gpt-3': 'Prompt Engineer',
-    'openai': 'Prompt Engineer',
-    'claude': 'Prompt Engineer',
-    'anthropic': 'Prompt Engineer',
-    'langchain': 'Prompt Engineer',
-    'llm': 'LLM Engineer',
-    'large language model': 'LLM Engineer',
-    'fine-tuning': 'LLM Engineer',
-    'rag': 'LLM Engineer',
-    'retrieval augmented': 'LLM Engineer',
-    'vector database': 'LLM Engineer',
-    'pinecone': 'LLM Engineer',
-    'embeddings': 'LLM Engineer',
-    'generative ai': 'Generative AI Engineer',
-    'stable diffusion': 'Generative AI Engineer',
-    'midjourney': 'Generative AI Engineer',
-    'dall-e': 'Generative AI Engineer',
-    'image generation': 'Generative AI Engineer',
-    'text generation': 'Generative AI Engineer',
-    'hugging face': 'LLM Engineer',
-    'transformers': 'LLM Engineer',
-
-    // AI/ML Engineer
-    'machine learning': 'AI/ML Engineer',
-    'tensorflow': 'AI/ML Engineer',
-    'pytorch': 'AI/ML Engineer',
-    'keras': 'AI/ML Engineer',
-    'deep learning': 'AI/ML Engineer',
-    'neural networks': 'AI/ML Engineer',
-    'nlp': 'NLP Engineer',
-    'natural language processing': 'NLP Engineer',
-    'bert': 'NLP Engineer',
-    'spacy': 'NLP Engineer',
-    'nltk': 'NLP Engineer',
-    'computer vision': 'Computer Vision Engineer',
-    'opencv': 'Computer Vision Engineer',
-    'yolo': 'Computer Vision Engineer',
-    'image processing': 'Computer Vision Engineer',
-    'object detection': 'Computer Vision Engineer',
-    'cnn': 'Computer Vision Engineer',
-    'mlops': 'MLOps Engineer',
-    'mlflow': 'MLOps Engineer',
-    'kubeflow': 'MLOps Engineer',
-    'model deployment': 'MLOps Engineer',
-    'feature store': 'MLOps Engineer',
-    'ai research': 'AI Research Scientist',
-    'research scientist': 'AI Research Scientist',
-
-    // Data Scientist
-    'pandas': 'Data Scientist',
-    'numpy': 'Data Scientist',
-    'scikit-learn': 'Data Scientist',
-    'data analysis': 'Data Analyst',
-    'statistics': 'Data Scientist',
-    'jupyter': 'Data Scientist',
-    'matplotlib': 'Data Scientist',
-    'data visualization': 'Data Analyst',
-    'r programming': 'Data Scientist',
-    'tableau': 'Data Analyst',
-    'power bi': 'Business Intelligence Analyst',
-    'looker': 'Business Intelligence Analyst',
-    'etl': 'Data Engineer',
-    'data pipeline': 'Data Engineer',
-    'airflow': 'Data Engineer',
-    'data warehousing': 'Data Engineer',
-    'snowflake': 'Data Engineer',
-    'dbt': 'Data Engineer',
-    'big data': 'Big Data Engineer',
-    'spark': 'Big Data Engineer',
-    'hadoop': 'Big Data Engineer',
-    'hive': 'Big Data Engineer',
-    'kafka': 'Big Data Engineer',
-
-    // Backend Developer
-    'node.js': 'Backend Developer',
-    'express': 'Backend Developer',
-    'django': 'Backend Developer',
-    'flask': 'Backend Developer',
-    'spring boot': 'Backend Developer',
-    'java': 'Backend Developer',
-    'python': 'Backend Developer',
-    'rest api': 'Backend Developer',
-    'graphql': 'Backend Developer',
-    'microservices': 'Backend Developer',
-    'fastapi': 'Backend Developer',
-
-    // Frontend Developer
-    'react': 'Frontend Developer',
-    'vue': 'Frontend Developer',
-    'angular': 'Frontend Developer',
-    'javascript': 'Frontend Developer',
-    'typescript': 'Frontend Developer',
-    'html': 'Frontend Developer',
-    'css': 'Frontend Developer',
-    'sass': 'Frontend Developer',
-    'bootstrap': 'Frontend Developer',
-    'next.js': 'Frontend Developer',
-    'tailwind': 'Frontend Developer',
-    'redux': 'Frontend Developer',
-    'webpack': 'Frontend Developer',
-
-    // Full Stack Developer
-    'mern': 'Full Stack Developer',
-    'mean': 'Full Stack Developer',
-    'full stack': 'Full Stack Developer',
-    'fullstack': 'Full Stack Developer',
-
-    // DevOps Engineer
-    'docker': 'DevOps Engineer',
-    'kubernetes': 'DevOps Engineer',
-    'k8s': 'DevOps Engineer',
-    'jenkins': 'DevOps Engineer',
-    'ci/cd': 'DevOps Engineer',
-    'terraform': 'DevOps Engineer',
-    'ansible': 'DevOps Engineer',
-    'linux': 'DevOps Engineer',
-    'bash': 'DevOps Engineer',
-    'prometheus': 'Site Reliability Engineer',
-    'grafana': 'Site Reliability Engineer',
-    'sre': 'Site Reliability Engineer',
-    'incident response': 'Site Reliability Engineer',
-    'slo': 'Site Reliability Engineer',
-    'helm': 'Platform Engineer',
-    'argocd': 'Platform Engineer',
-    'gitops': 'Platform Engineer',
-
-    // Cloud Engineer
-    'aws': 'Cloud Engineer',
-    'azure': 'Cloud Engineer',
-    'gcp': 'Cloud Engineer',
-    'google cloud': 'Cloud Engineer',
-    'cloud computing': 'Cloud Engineer',
-    'lambda': 'Cloud Engineer',
-    'ec2': 'Cloud Engineer',
-    's3': 'Cloud Engineer',
-    'cloudformation': 'Cloud Architect',
-    'cloud architecture': 'Cloud Architect',
-
-    // Database
-    'sql': 'Database Administrator',
-    'mysql': 'Database Administrator',
-    'postgresql': 'Database Administrator',
-    'mongodb': 'Database Administrator',
-    'redis': 'Database Administrator',
-    'elasticsearch': 'Database Administrator',
-    'cassandra': 'Database Administrator',
-    'oracle': 'Database Administrator',
-    'database design': 'Database Architect',
-    'data modeling': 'Database Architect',
-
-    // Mobile Developer
-    'react native': 'React Native Developer',
-    'flutter': 'Flutter Developer',
-    'dart': 'Flutter Developer',
-    'swift': 'iOS Developer',
-    'swiftui': 'iOS Developer',
-    'uikit': 'iOS Developer',
-    'xcode': 'iOS Developer',
-    'kotlin': 'Android Developer',
-    'android studio': 'Android Developer',
-    'ios': 'iOS Developer',
-    'android': 'Android Developer',
-    'mobile development': 'Mobile Developer',
-
-    // QA Engineer
-    'selenium': 'QA Engineer',
-    'testing': 'QA Engineer',
-    'automation testing': 'SDET',
-    'jest': 'QA Engineer',
-    'cypress': 'QA Engineer',
-    'quality assurance': 'QA Engineer',
-    'unit testing': 'QA Engineer',
-    'testng': 'SDET',
-    'junit': 'SDET',
-    'test automation': 'SDET',
-    'jmeter': 'Performance Engineer',
-    'load testing': 'Performance Engineer',
-    'performance testing': 'Performance Engineer',
-    'gatling': 'Performance Engineer',
-
-    // Security
-    'security': 'Security Engineer',
-    'penetration testing': 'Penetration Tester',
-    'ethical hacking': 'Penetration Tester',
-    'kali linux': 'Penetration Tester',
-    'burp suite': 'Penetration Tester',
-    'owasp': 'Application Security Engineer',
-    'sast': 'Application Security Engineer',
-    'dast': 'Application Security Engineer',
-    'devsecops': 'Application Security Engineer',
-    'siem': 'Cybersecurity Analyst',
-    'splunk': 'Cybersecurity Analyst',
-    'threat analysis': 'Cybersecurity Analyst',
-    'malware analysis': 'Cybersecurity Analyst',
-    'iso 27001': 'Information Security Analyst',
-    'compliance': 'Information Security Analyst',
-    'gdpr': 'Information Security Analyst',
-
-    // Design
-    'figma': 'UI/UX Designer',
-    'sketch': 'UI/UX Designer',
-    'adobe xd': 'UI/UX Designer',
-    'ui design': 'UI/UX Designer',
-    'ux design': 'UI/UX Designer',
-    'wireframing': 'UI/UX Designer',
-    'prototyping': 'UI/UX Designer',
-    'user research': 'UX Researcher',
-    'usability testing': 'UX Researcher',
-    'photoshop': 'Graphic Designer',
-    'illustrator': 'Graphic Designer',
-    'indesign': 'Graphic Designer',
-    'branding': 'Graphic Designer',
-    'visual design': 'Visual Designer',
-    'interaction design': 'Interaction Designer',
-    'product design': 'Product Designer',
-
-    // Product & Project Management
-    'product management': 'Product Manager',
-    'roadmapping': 'Product Manager',
-    'user stories': 'Product Manager',
-    'jira': 'Project Manager',
-    'agile': 'Scrum Master',
-    'scrum': 'Scrum Master',
-    'kanban': 'Scrum Master',
-    'sprint planning': 'Scrum Master',
-    'retrospective': 'Scrum Master',
-    'safe': 'Agile Coach',
-    'coaching': 'Agile Coach',
-    'pmp': 'Project Manager',
-    'project management': 'Project Manager',
-    'backlog management': 'Product Owner',
-
-    // Business Analyst
-    'business analysis': 'Business Analyst',
-    'requirements gathering': 'Business Analyst',
-    'process mapping': 'Business Analyst',
-    'systems analysis': 'Systems Analyst',
-
-    // Technical Writer
-    'technical writing': 'Technical Writer',
-    'documentation': 'Technical Writer',
-    'api documentation': 'Technical Writer',
-
-    // Architecture
-    'system design': 'Software Architect',
-    'architecture patterns': 'Software Architect',
-    'enterprise architecture': 'Enterprise Architect',
-    'togaf': 'Enterprise Architect',
-    'solutions architecture': 'Solutions Architect',
-    'data architecture': 'Data Architect',
-    'integration': 'Integration Architect',
-
-    // Emerging Tech
-    'solidity': 'Blockchain Developer',
-    'ethereum': 'Blockchain Developer',
-    'smart contracts': 'Blockchain Developer',
-    'web3': 'Blockchain Developer',
-    'blockchain': 'Blockchain Developer',
-    'unity': 'Game Developer',
-    'unreal engine': 'Game Developer',
-    'game development': 'Game Developer',
-    'ar': 'AR/VR Developer',
-    'vr': 'AR/VR Developer',
-    'augmented reality': 'AR/VR Developer',
-    'virtual reality': 'AR/VR Developer',
-    'iot': 'IoT Developer',
-    'embedded systems': 'IoT Developer',
-    'arduino': 'IoT Developer',
-    'raspberry pi': 'IoT Developer',
-    'robotics': 'Robotics Engineer',
-    'ros': 'Robotics Engineer',
-
-    // Leadership
-    'engineering management': 'Engineering Manager',
-    'team leadership': 'Engineering Manager',
-    'people management': 'Engineering Manager',
-    'hiring': 'Engineering Manager',
-    'cto': 'CTO',
-    'technology strategy': 'CTO',
-
-    // IT Support
-    'troubleshooting': 'Technical Support Engineer',
-    'customer support': 'Technical Support Engineer',
-    'help desk': 'Help Desk Technician',
-    'desktop support': 'Desktop Support Engineer',
-    'active directory': 'IT Administrator',
-    'windows server': 'Systems Administrator',
-    'vmware': 'Systems Administrator',
-
-    // Sales & Consulting
-    'technical sales': 'Sales Engineer',
-    'pre-sales': 'Sales Engineer',
-    'demo': 'Solutions Engineer',
-    'consulting': 'IT Consultant',
-    'digital transformation': 'Technology Consultant',
-
-    // Marketing Tech
-    'seo': 'SEO Specialist',
-    'google analytics': 'SEO Specialist',
-    'growth hacking': 'Growth Engineer',
-    'a/b testing': 'Growth Engineer',
-    'marketing automation': 'Marketing Technologist',
-
-    // Network
-    'networking': 'Network Engineer',
-    'cisco': 'Network Engineer',
-    'tcp/ip': 'Network Engineer',
-    'firewall': 'Network Engineer',
-    'routing': 'Network Engineer',
-    'ccna': 'Network Engineer',
-    'vpn': 'Network Engineer'
-};
-
 /**
- * Predict career roles based on text content
+ * Call Python predict_service.py to get ML predictions
+ * @param {string} text - Skill text to predict from
+ * @returns {Promise<Object>} Prediction result
  */
-function predictRoles(text) {
-    const textLower = text.toLowerCase();
-    const roleScores = {};
-
-    // Initialize scores
-    CAREER_ROLES.forEach(role => {
-        roleScores[role] = 0;
+function callPythonPredictor(text) {
+    return new Promise((resolve, reject) => {
+        execFile('python', [PREDICT_SCRIPT, text], {
+            timeout: 30000,  // 30s timeout
+            maxBuffer: 1024 * 1024
+        }, (error, stdout, stderr) => {
+            if (error) {
+                console.error('Python prediction error:', error.message);
+                if (stderr) console.error('stderr:', stderr);
+                reject(new Error('ML prediction service unavailable'));
+                return;
+            }
+            try {
+                const result = JSON.parse(stdout.trim());
+                if (result.error) {
+                    reject(new Error(result.error));
+                } else {
+                    resolve(result);
+                }
+            } catch (parseError) {
+                console.error('Failed to parse Python output:', stdout);
+                reject(new Error('Failed to parse prediction result'));
+            }
+        });
     });
-
-    // Calculate scores based on skill matches
-    Object.entries(SKILL_ROLE_MAPPING).forEach(([skill, role]) => {
-        const regex = new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-        const matches = (textLower.match(regex) || []).length;
-        if (matches > 0) {
-            roleScores[role] = (roleScores[role] || 0) + matches * 2;
-        }
-    });
-
-    // Find the role with highest score
-    let maxScore = 0;
-    let predictedRole = 'Software Engineer'; // Default
-
-    Object.entries(roleScores).forEach(([role, score]) => {
-        if (score > maxScore) {
-            maxScore = score;
-            predictedRole = role;
-        }
-    });
-
-    // Calculate confidence (normalize to 0.6-0.98 range)
-    const totalMatches = Object.values(roleScores).reduce((a, b) => a + b, 0);
-    let confidence = totalMatches > 0 ? (maxScore / totalMatches) : 0.6;
-    confidence = Math.max(0.6, Math.min(0.98, confidence * 0.4 + 0.6));
-
-    // Get top 5 roles
-    const sortedRoles = Object.entries(roleScores)
-        .filter(([role, score]) => score > 0)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([role, score], index) => ({
-            role,
-            confidence: Math.max(0.4, confidence - (index * 0.1)),
-            rank: index + 1
-        }));
-
-    // Ensure we have at least 3 roles
-    while (sortedRoles.length < 3) {
-        const usedRoles = sortedRoles.map(r => r.role);
-        const remainingRoles = CAREER_ROLES.filter(r => !usedRoles.includes(r));
-        if (remainingRoles.length > 0) {
-            sortedRoles.push({
-                role: remainingRoles[0],
-                confidence: 0.4,
-                rank: sortedRoles.length + 1
-            });
-        } else {
-            break;
-        }
-    }
-
-    return {
-        predictedRole,
-        confidence,
-        topRoles: sortedRoles,
-        svmRole: predictedRole,
-        svmConfidence: confidence,
-        rfRole: sortedRoles[1]?.role || predictedRole,
-        rfConfidence: confidence * 0.95
-    };
 }
 
 // POST /api/predict-role - Predict career role from resume text
-router.post('/predict-role', (req, res) => {
+router.post('/predict-role', async (req, res) => {
     try {
         const { text, skills } = req.body;
 
@@ -481,29 +90,72 @@ router.post('/predict-role', (req, res) => {
         }
 
         // Combine text and skills for prediction
-        let inputText = text || '';
-        if (skills && Array.isArray(skills)) {
-            inputText += ' ' + skills.join(' ');
+
+        // Combine text and skills, but prioritize EXTRACTED skills for the model
+        // The model was trained on "Skill, Skill, Skill" format, NOT raw sentences.
+        // So we must extract skills first to reduce noise.
+        const { extractSkills } = require('../services/skillExtractor');
+
+        let skillsForModel = [];
+
+        // 1. If explicit skills provided, use them
+        if (skills && Array.isArray(skills) && skills.length > 0) {
+            skillsForModel = [...skills];
         }
 
-        if (inputText.trim().length === 0) {
+        // 2. If text provided, extract skills from it
+        if (text) {
+            const extracted = extractSkills(text);
+            // Merge unique
+            extracted.forEach(s => {
+                if (!skillsForModel.includes(s)) skillsForModel.push(s);
+            });
+        }
+
+        // 3. Fallback: If no skills found, use raw text (but clean it)
+        let modelInput = '';
+        if (skillsForModel.length > 0) {
+            modelInput = skillsForModel.join(', ');
+        } else {
+            modelInput = (text || '').replace(/\n/g, ' ').trim();
+        }
+
+        if (modelInput.length === 0) {
             return res.status(400).json({ error: 'No content to analyze' });
         }
 
-        const prediction = predictRoles(inputText);
+        console.log(`[Predict] Sending value to ML model: "${modelInput.substring(0, 100)}..."`);
 
-        res.json({
-            success: true,
-            predicted_role: prediction.predictedRole,
-            confidence: prediction.confidence,
-            svm_role: prediction.svmRole,
-            svm_confidence: prediction.svmConfidence,
-            rf_role: prediction.rfRole,
-            rf_confidence: prediction.rfConfidence,
-            top_roles: prediction.topRoles,
-            ensemble_method: 'skill_matching',
-            total_supported_roles: CAREER_ROLES.length
-        });
+        // Try ML prediction first
+        try {
+            const mlResult = await callPythonPredictor(modelInput);
+
+            res.json({
+                success: true,
+                predicted_role: mlResult.predicted_role,
+                confidence: mlResult.confidence,
+                svm_role: mlResult.svm_prediction?.predicted_role || mlResult.predicted_role,
+                svm_confidence: mlResult.svm_prediction?.confidence || mlResult.confidence,
+                rf_role: mlResult.rf_prediction?.predicted_role || mlResult.predicted_role,
+                rf_confidence: mlResult.rf_prediction?.confidence || mlResult.confidence,
+                ensemble_role: mlResult.ensemble_prediction?.predicted_role || mlResult.predicted_role,
+                ensemble_confidence: mlResult.ensemble_prediction?.confidence || mlResult.confidence,
+                ensemble_method: mlResult.ensemble_prediction?.voting_method || 'hard',
+                top_roles: mlResult.svm_prediction?.top_roles || mlResult.rf_prediction?.top_roles || [],
+                models_used: mlResult.models_used || [],
+                total_supported_roles: mlResult.total_supported_roles || CAREER_ROLES.length,
+                prediction_source: 'ml_models'
+            });
+        } catch (mlError) {
+            // Fallback to keyword-based prediction if ML models unavailable
+            console.warn('ML prediction failed, using keyword fallback:', mlError.message);
+            const fallbackResult = keywordFallbackPredict(modelInput);
+            res.json({
+                ...fallbackResult,
+                prediction_source: 'keyword_fallback',
+                ml_error: mlError.message
+            });
+        }
     } catch (error) {
         console.error('Prediction error:', error);
         res.status(500).json({ error: 'Failed to predict career role' });
@@ -518,5 +170,63 @@ router.get('/roles', (req, res) => {
         roles: CAREER_ROLES.sort()
     });
 });
+
+/**
+ * Keyword-based fallback predictor (used only when ML models are unavailable)
+ */
+function keywordFallbackPredict(text) {
+    const SKILL_ROLE_MAP = {
+        'machine learning': 'AI/ML Engineer', 'tensorflow': 'AI/ML Engineer',
+        'pytorch': 'AI/ML Engineer', 'deep learning': 'AI/ML Engineer',
+        'react': 'Frontend Developer', 'angular': 'Frontend Developer',
+        'vue': 'Frontend Developer', 'javascript': 'Frontend Developer',
+        'node.js': 'Backend Developer', 'django': 'Backend Developer',
+        'flask': 'Backend Developer', 'express': 'Backend Developer',
+        'python': 'Data Scientist', 'pandas': 'Data Scientist',
+        'docker': 'DevOps Engineer', 'kubernetes': 'DevOps Engineer',
+        'aws': 'Cloud Engineer', 'azure': 'Cloud Engineer',
+        'sql': 'Database Administrator', 'mongodb': 'Database Administrator',
+        'figma': 'UI/UX Designer', 'ui design': 'UI/UX Designer',
+        'selenium': 'QA Engineer', 'testing': 'QA Engineer',
+        'swift': 'iOS Developer', 'kotlin': 'Android Developer',
+        'react native': 'React Native Developer', 'flutter': 'Flutter Developer',
+        'security': 'Security Engineer', 'blockchain': 'Blockchain Developer'
+    };
+
+    const textLower = text.toLowerCase();
+    const roleScores = {};
+
+    Object.entries(SKILL_ROLE_MAP).forEach(([skill, role]) => {
+        if (textLower.includes(skill)) {
+            roleScores[role] = (roleScores[role] || 0) + 1;
+        }
+    });
+
+    let predictedRole = 'Software Engineer';
+    let maxScore = 0;
+    Object.entries(roleScores).forEach(([role, score]) => {
+        if (score > maxScore) {
+            maxScore = score;
+            predictedRole = role;
+        }
+    });
+
+    const confidence = maxScore > 0 ? Math.min(0.85, 0.5 + maxScore * 0.1) : 0.5;
+
+    return {
+        success: true,
+        predicted_role: predictedRole,
+        confidence,
+        svm_role: predictedRole,
+        svm_confidence: confidence,
+        rf_role: predictedRole,
+        rf_confidence: confidence * 0.95,
+        ensemble_role: predictedRole,
+        ensemble_confidence: confidence,
+        ensemble_method: 'keyword_fallback',
+        top_roles: [{ role: predictedRole, confidence, rank: 1 }],
+        total_supported_roles: CAREER_ROLES.length
+    };
+}
 
 module.exports = router;

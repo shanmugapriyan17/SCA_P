@@ -1,0 +1,634 @@
+[
+  {
+    "skill": "Python",
+    "course": "Python for Everybody",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 40,
+    "url": "https://coursera.org/specializations/python"
+  },
+  {
+    "skill": "Python",
+    "course": "Complete Python Bootcamp",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 22,
+    "url": "https://udemy.com/complete-python-bootcamp"
+  },
+  {
+    "skill": "Python",
+    "course": "Python Data Structures",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 15,
+    "url": "https://coursera.org/learn/python-data"
+  },
+  {
+    "skill": "JavaScript",
+    "course": "JavaScript: Understanding the Weird Parts",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 12,
+    "url": "https://udemy.com/understand-javascript"
+  },
+  {
+    "skill": "JavaScript",
+    "course": "The Complete JavaScript Course",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 69,
+    "url": "https://udemy.com/the-complete-javascript-course"
+  },
+  {
+    "skill": "JavaScript",
+    "course": "JavaScript Algorithms and Data Structures",
+    "platform": "freeCodeCamp",
+    "level": "Intermediate",
+    "duration_hours": 300,
+    "url": "https://freecodecamp.org/learn/javascript-algorithms-and-data-structures"
+  },
+  {
+    "skill": "React",
+    "course": "React - The Complete Guide",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 48,
+    "url": "https://udemy.com/react-the-complete-guide"
+  },
+  {
+    "skill": "React",
+    "course": "Full-Stack Web Development with React",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 30,
+    "url": "https://coursera.org/specializations/full-stack-react"
+  },
+  {
+    "skill": "Node.js",
+    "course": "The Complete Node.js Developer Course",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 35,
+    "url": "https://udemy.com/the-complete-nodejs-developer-course"
+  },
+  {
+    "skill": "Node.js",
+    "course": "Server-side Development with NodeJS",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 20,
+    "url": "https://coursera.org/learn/server-side-nodejs"
+  },
+  {
+    "skill": "SQL",
+    "course": "The Complete SQL Bootcamp",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 9,
+    "url": "https://udemy.com/the-complete-sql-bootcamp"
+  },
+  {
+    "skill": "SQL",
+    "course": "SQL for Data Science",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 15,
+    "url": "https://coursera.org/learn/sql-for-data-science"
+  },
+  {
+    "skill": "Machine Learning",
+    "course": "Machine Learning by Andrew Ng",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 60,
+    "url": "https://coursera.org/learn/machine-learning"
+  },
+  {
+    "skill": "Machine Learning",
+    "course": "Hands-On Machine Learning",
+    "platform": "O'Reilly",
+    "level": "Advanced",
+    "duration_hours": 40,
+    "url": "https://oreilly.com/library/view/hands-on-machine-learning"
+  },
+  {
+    "skill": "Machine Learning",
+    "course": "Machine Learning A-Z",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 44,
+    "url": "https://udemy.com/machinelearning"
+  },
+  {
+    "skill": "Deep Learning",
+    "course": "Deep Learning Specialization",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 80,
+    "url": "https://coursera.org/specializations/deep-learning"
+  },
+  {
+    "skill": "Deep Learning",
+    "course": "Practical Deep Learning for Coders",
+    "platform": "fast.ai",
+    "level": "Intermediate",
+    "duration_hours": 40,
+    "url": "https://course.fast.ai"
+  },
+  {
+    "skill": "TensorFlow",
+    "course": "TensorFlow Developer Certificate",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 50,
+    "url": "https://coursera.org/professional-certificates/tensorflow-in-practice"
+  },
+  {
+    "skill": "TensorFlow",
+    "course": "Intro to TensorFlow for Deep Learning",
+    "platform": "Udacity",
+    "level": "Intermediate",
+    "duration_hours": 20,
+    "url": "https://udacity.com/course/intro-to-tensorflow-for-deep-learning"
+  },
+  {
+    "skill": "PyTorch",
+    "course": "Deep Learning with PyTorch",
+    "platform": "Udacity",
+    "level": "Intermediate",
+    "duration_hours": 30,
+    "url": "https://udacity.com/course/deep-learning-pytorch"
+  },
+  {
+    "skill": "PyTorch",
+    "course": "PyTorch for Deep Learning",
+    "platform": "freeCodeCamp",
+    "level": "Beginner",
+    "duration_hours": 25,
+    "url": "https://youtube.com/watch?v=pytorch-course"
+  },
+  {
+    "skill": "Docker",
+    "course": "Docker Mastery",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://udemy.com/docker-mastery"
+  },
+  {
+    "skill": "Docker",
+    "course": "Docker for Beginners",
+    "platform": "KodeKloud",
+    "level": "Beginner",
+    "duration_hours": 8,
+    "url": "https://kodekloud.com/courses/docker-for-the-absolute-beginner"
+  },
+  {
+    "skill": "Kubernetes",
+    "course": "Kubernetes for Beginners",
+    "platform": "KodeKloud",
+    "level": "Beginner",
+    "duration_hours": 12,
+    "url": "https://kodekloud.com/courses/kubernetes-for-the-absolute-beginners"
+  },
+  {
+    "skill": "Kubernetes",
+    "course": "Certified Kubernetes Administrator",
+    "platform": "Udemy",
+    "level": "Advanced",
+    "duration_hours": 25,
+    "url": "https://udemy.com/certified-kubernetes-administrator"
+  },
+  {
+    "skill": "AWS",
+    "course": "AWS Cloud Practitioner",
+    "platform": "AWS",
+    "level": "Beginner",
+    "duration_hours": 30,
+    "url": "https://aws.amazon.com/training/learn-about/cloud-practitioner"
+  },
+  {
+    "skill": "AWS",
+    "course": "AWS Solutions Architect Associate",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 27,
+    "url": "https://udemy.com/aws-certified-solutions-architect-associate"
+  },
+  {
+    "skill": "Azure",
+    "course": "Azure Fundamentals AZ-900",
+    "platform": "Microsoft Learn",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://learn.microsoft.com/en-us/training/paths/az-900-describe-cloud-concepts"
+  },
+  {
+    "skill": "Git",
+    "course": "Git Complete: The definitive guide",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 6,
+    "url": "https://udemy.com/git-complete"
+  },
+  {
+    "skill": "Git",
+    "course": "Version Control with Git",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 10,
+    "url": "https://coursera.org/learn/version-control-with-git"
+  },
+  {
+    "skill": "Pandas",
+    "course": "Data Analysis with Pandas and Python",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://udemy.com/data-analysis-with-pandas"
+  },
+  {
+    "skill": "NumPy",
+    "course": "NumPy for Data Science",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 5,
+    "url": "https://udemy.com/numpy"
+  },
+  {
+    "skill": "Statistics",
+    "course": "Statistics with Python",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 30,
+    "url": "https://coursera.org/specializations/statistics-with-python"
+  },
+  {
+    "skill": "NLP",
+    "course": "NLP with Python",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 25,
+    "url": "https://coursera.org/specializations/natural-language-processing"
+  },
+  {
+    "skill": "NLP",
+    "course": "Hugging Face NLP Course",
+    "platform": "Hugging Face",
+    "level": "Intermediate",
+    "duration_hours": 15,
+    "url": "https://huggingface.co/learn/nlp-course"
+  },
+  {
+    "skill": "Scikit-learn",
+    "course": "Scikit-learn Tutorial",
+    "platform": "DataCamp",
+    "level": "Beginner",
+    "duration_hours": 6,
+    "url": "https://datacamp.com/courses/supervised-learning-with-scikit-learn"
+  },
+  {
+    "skill": "CI/CD",
+    "course": "CI/CD with Jenkins",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 8,
+    "url": "https://udemy.com/jenkins"
+  },
+  {
+    "skill": "CI/CD",
+    "course": "GitHub Actions - Complete Guide",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 12,
+    "url": "https://udemy.com/github-actions"
+  },
+  {
+    "skill": "Terraform",
+    "course": "HashiCorp Certified Terraform Associate",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 14,
+    "url": "https://udemy.com/terraform-beginner-to-advanced"
+  },
+  {
+    "skill": "Linux",
+    "course": "Linux Mastery",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 12,
+    "url": "https://udemy.com/linux-mastery"
+  },
+  {
+    "skill": "HTML/CSS",
+    "course": "Build Responsive Websites",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 38,
+    "url": "https://udemy.com/design-and-develop-a-killer-website-with-html5-and-css3"
+  },
+  {
+    "skill": "TypeScript",
+    "course": "Understanding TypeScript",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 15,
+    "url": "https://udemy.com/understanding-typescript"
+  },
+  {
+    "skill": "REST API",
+    "course": "REST APIs with Flask and Python",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 17,
+    "url": "https://udemy.com/rest-api-flask-and-python"
+  },
+  {
+    "skill": "Figma",
+    "course": "Master Figma",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 10,
+    "url": "https://udemy.com/figma-ux-ui-design-user-experience-tutorial-course"
+  },
+  {
+    "skill": "Security",
+    "course": "CompTIA Security+",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 25,
+    "url": "https://udemy.com/comptia-security-plus"
+  },
+  {
+    "skill": "Penetration Testing",
+    "course": "Ethical Hacking from Scratch",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 25,
+    "url": "https://udemy.com/learn-ethical-hacking-from-scratch"
+  },
+  {
+    "skill": "Agile",
+    "course": "Agile with Atlassian Jira",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 10,
+    "url": "https://coursera.org/learn/agile-atlassian-jira"
+  },
+  {
+    "skill": "Scrum",
+    "course": "Scrum Master Certification Prep",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 8,
+    "url": "https://udemy.com/scrum-master-certification"
+  },
+  {
+    "skill": "Selenium",
+    "course": "Selenium WebDriver with Java",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 22,
+    "url": "https://udemy.com/selenium-webdriver-java"
+  },
+  {
+    "skill": "MongoDB",
+    "course": "MongoDB - The Complete Developer's Guide",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 17,
+    "url": "https://udemy.com/mongodb-the-complete-developers-guide"
+  },
+  {
+    "skill": "Java",
+    "course": "Java Programming Masterclass",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 80,
+    "url": "https://udemy.com/java-the-complete-java-developer-course"
+  },
+  {
+    "skill": "Swift",
+    "course": "iOS & Swift - The Complete iOS App Development",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 55,
+    "url": "https://udemy.com/ios-13-app-development-bootcamp"
+  },
+  {
+    "skill": "Kotlin",
+    "course": "Android Kotlin Developer",
+    "platform": "Udacity",
+    "level": "Intermediate",
+    "duration_hours": 40,
+    "url": "https://udacity.com/course/developing-android-apps-with-kotlin"
+  },
+  {
+    "skill": "Flutter",
+    "course": "Flutter & Dart - The Complete Guide",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 42,
+    "url": "https://udemy.com/learn-flutter-dart-to-build-ios-android-apps"
+  },
+  {
+    "skill": "Solidity",
+    "course": "Ethereum and Solidity: The Complete Guide",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 24,
+    "url": "https://udemy.com/ethereum-and-solidity-the-complete-developers-guide"
+  },
+  {
+    "skill": "Blockchain",
+    "course": "Blockchain Specialization",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 40,
+    "url": "https://coursera.org/specializations/blockchain"
+  },
+  {
+    "skill": "LLM",
+    "course": "LLM Course - Generative AI with LLMs",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 20,
+    "url": "https://coursera.org/learn/generative-ai-with-llms"
+  },
+  {
+    "skill": "Langchain",
+    "course": "LangChain for LLM Application Development",
+    "platform": "DeepLearning.AI",
+    "level": "Intermediate",
+    "duration_hours": 5,
+    "url": "https://deeplearning.ai/short-courses/langchain-for-llm-application-development"
+  },
+  {
+    "skill": "Prompt Engineering",
+    "course": "ChatGPT Prompt Engineering for Developers",
+    "platform": "DeepLearning.AI",
+    "level": "Beginner",
+    "duration_hours": 3,
+    "url": "https://deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers"
+  },
+  {
+    "skill": "MLOps",
+    "course": "Machine Learning Engineering for Production",
+    "platform": "Coursera",
+    "level": "Advanced",
+    "duration_hours": 40,
+    "url": "https://coursera.org/specializations/machine-learning-engineering-for-production-mlops"
+  },
+  {
+    "skill": "MLflow",
+    "course": "MLflow in Action",
+    "platform": "DataCamp",
+    "level": "Intermediate",
+    "duration_hours": 4,
+    "url": "https://datacamp.com/courses/mlflow"
+  },
+  {
+    "skill": "Tableau",
+    "course": "Tableau A-Z: Hands-On",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 9,
+    "url": "https://udemy.com/tableau-for-beginners"
+  },
+  {
+    "skill": "Power BI",
+    "course": "Microsoft Power BI Desktop",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 12,
+    "url": "https://udemy.com/microsoft-power-bi-up-running-with-power-bi-desktop"
+  },
+  {
+    "skill": "Apache Spark",
+    "course": "Apache Spark with Python - Big Data with PySpark",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 12,
+    "url": "https://udemy.com/spark-and-python-for-big-data-with-pyspark"
+  },
+  {
+    "skill": "OpenCV",
+    "course": "Computer Vision with OpenCV and Deep Learning",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 14,
+    "url": "https://udemy.com/python-for-computer-vision-with-opencv-and-deep-learning"
+  },
+  {
+    "skill": "Transformers",
+    "course": "NLP with Transformers",
+    "platform": "Hugging Face",
+    "level": "Advanced",
+    "duration_hours": 20,
+    "url": "https://huggingface.co/learn/nlp-course"
+  },
+  {
+    "skill": "BERT",
+    "course": "BERT and Transformers",
+    "platform": "DeepLearning.AI",
+    "level": "Advanced",
+    "duration_hours": 8,
+    "url": "https://deeplearning.ai/short-courses/"
+  },
+  {
+    "skill": "Unity",
+    "course": "Complete C# Unity Game Developer 3D",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 30,
+    "url": "https://udemy.com/unitycourse2"
+  },
+  {
+    "skill": "IoT",
+    "course": "Internet of Things Specialization",
+    "platform": "Coursera",
+    "level": "Intermediate",
+    "duration_hours": 30,
+    "url": "https://coursera.org/specializations/internet-of-things"
+  },
+  {
+    "skill": "Arduino",
+    "course": "Arduino Step by Step",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://udemy.com/arduino-sbs-17gs"
+  },
+  {
+    "skill": "System Design",
+    "course": "Grokking System Design",
+    "platform": "Educative",
+    "level": "Advanced",
+    "duration_hours": 25,
+    "url": "https://educative.io/courses/grokking-the-system-design-interview"
+  },
+  {
+    "skill": "Algorithms",
+    "course": "Algorithms and Data Structures Masterclass",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 22,
+    "url": "https://udemy.com/js-algorithms-and-data-structures-masterclass"
+  },
+  {
+    "skill": "Data Structures",
+    "course": "Data Structures & Algorithms in Python",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 16,
+    "url": "https://udemy.com/data-structures-algorithms-python"
+  },
+  {
+    "skill": "Microservices",
+    "course": "Microservices with Node JS and React",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 54,
+    "url": "https://udemy.com/microservices-with-node-js-and-react"
+  },
+  {
+    "skill": "GraphQL",
+    "course": "The Modern GraphQL Bootcamp",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 23,
+    "url": "https://udemy.com/graphql-bootcamp"
+  },
+  {
+    "skill": "Excel",
+    "course": "Excel Skills for Business",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://coursera.org/specializations/excel"
+  },
+  {
+    "skill": "R",
+    "course": "R Programming",
+    "platform": "Coursera",
+    "level": "Beginner",
+    "duration_hours": 20,
+    "url": "https://coursera.org/learn/r-programming"
+  },
+  {
+    "skill": "OWASP",
+    "course": "OWASP Top 10 Web Application Security",
+    "platform": "Udemy",
+    "level": "Intermediate",
+    "duration_hours": 5,
+    "url": "https://udemy.com/owasp-top-10"
+  },
+  {
+    "skill": "Compliance",
+    "course": "GDPR Data Protection",
+    "platform": "Udemy",
+    "level": "Beginner",
+    "duration_hours": 3,
+    "url": "https://udemy.com/gdpr"
+  }
+]
