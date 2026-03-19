@@ -8,6 +8,7 @@ import SearchResults from './pages/SearchResults';
 import PerformanceDashboard from './pages/PerformanceDashboard';
 import MentorshipHub from './pages/MentorshipHub';
 import ChatbotWidget from './components/Chatbot/ChatbotWidget';
+import CustomCursor from './components/Common/CustomCursor';
 
 // Protected Route component
 function ProtectedRoute({ children }) {
@@ -49,6 +50,7 @@ function App() {
             </Routes>
             {/* Chatbot Widget - Available on all pages */}
             <ChatbotWidget />
+            <CustomCursor />
         </>
     );
 }

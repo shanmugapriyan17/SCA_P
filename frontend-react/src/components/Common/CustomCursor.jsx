@@ -5,7 +5,14 @@ import { useEffect, useRef } from 'react';
  * Native cursor is hidden; only the dot is shown.
  */
 function CustomCursor() {
+    // Detect mobile / touch devices
+    const isTouchDevice = typeof window !== 'undefined' && 
+        (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+        
     const dotRef = useRef(null);
+
+    // Completely disable custom cursor on touch devices to fix mobile stickiness
+    if (isTouchDevice) return null;
 
     useEffect(() => {
         const dot = dotRef.current;
