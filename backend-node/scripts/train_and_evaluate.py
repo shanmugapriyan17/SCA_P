@@ -94,7 +94,7 @@ print(f"  Train: {X_train_text.shape[0]:,} | Test: {X_test_text.shape[0]:,}")
 # STEP 3: VECTORIZE FOR EVALUATION (Fit on Train only)
 # ═══════════════════════════════════════════
 eval_vectorizer = TfidfVectorizer(
-    max_features=5000,
+    max_features=1000,
     ngram_range=(1, 1),
     sublinear_tf=True,
     stop_words='english',
@@ -136,8 +136,8 @@ print(f"\n  Training Random Forest...")
 rf_start = time.time()
 
 rf_model = RandomForestClassifier(
-    n_estimators=200,
-    max_depth=None,
+    n_estimators=20,
+    max_depth=15,
     max_features='log2',
     class_weight='balanced',
     random_state=42,
@@ -162,7 +162,7 @@ ens_start = time.time()
 
 # Recreate components for ensemble evaluation avoiding fitting leakage
 ens_svm = CalibratedClassifierCV(LinearSVC(max_iter=10000, random_state=42, C=0.01, dual=True), cv=3, method='sigmoid')
-ens_rf = RandomForestClassifier(n_estimators=200, max_depth=None, max_features='log2', class_weight='balanced', random_state=42, n_jobs=1)
+ens_rf = RandomForestClassifier(n_estimators=20, max_depth=15, max_features='log2', class_weight='balanced', random_state=42, n_jobs=1)
 
 ensemble_model = VotingClassifier(
     estimators=[('svm', ens_svm), ('rf', ens_rf)],
@@ -187,7 +187,7 @@ print(f"\n  Retraining on FULL dataset for production...")
 
 # Final Vectorizer on ALL text
 final_vectorizer = TfidfVectorizer(
-    max_features=5000,
+    max_features=1000,
     ngram_range=(1, 1),
     sublinear_tf=True,
     stop_words='english',
@@ -201,7 +201,7 @@ svm_prod.fit(X_all, y_encoded)
 
 # RF on full data
 rf_prod = RandomForestClassifier(
-    n_estimators=200, max_depth=None, max_features='log2',
+    n_estimators=20, max_depth=15, max_features='log2',
     class_weight='balanced', random_state=42, n_jobs=1
 )
 rf_prod.fit(X_all, y_encoded)
