@@ -128,6 +128,22 @@ app.use((err, req, res, next) => {
   });
 });
 
+const fs = require('fs');
+const { execSync } = require('child_process');
+
+// Auto-Run ML Training if models are missing
+const modelPath = path.join(__dirname, '..', 'models', 'model_ensemble.joblib');
+if (!fs.existsSync(modelPath)) {
+  console.log('⚡ Training models because they were not found. This may take a few minutes...');
+  try {
+    const scriptPath = path.join(__dirname, '..', 'scripts', 'train_and_evaluate.py');
+    execSync(`python "${scriptPath}"`, { stdio: 'inherit' });
+    console.log('✅ Models generated and saved successfully!');
+  } catch (error) {
+    console.error('❌ Error during model training:', error.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
